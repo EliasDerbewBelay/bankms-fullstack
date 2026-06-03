@@ -6,7 +6,9 @@ const nextConfig: NextConfig = {
     serverActions: { allowedOrigins: ['localhost:3000'] },
   },
   images: {
-    domains: ['localhost'],
+    remotePatterns: [
+      { protocol: 'http', hostname: 'localhost' },
+    ],
   },
   async rewrites() {
     return [

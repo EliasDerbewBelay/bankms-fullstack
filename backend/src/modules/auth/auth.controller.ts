@@ -28,3 +28,20 @@ export const getMe = asyncHandler(async (req: Request, res: Response) => {
   const user = await authService.getMe((req as any).user!.userId);
   return ApiResponse.success(res, user);
 });
+
+export const register = asyncHandler(async (req: Request, res: Response) => {
+  const customer = await authService.registerCustomer(req.body);
+  return ApiResponse.created(res, customer, 'Registration successful. Pending KYC verification.');
+});
+
+export const changePassword = asyncHandler(async (req: Request, res: Response) => {
+  const { currentPassword, newPassword } = req.body;
+  await authService.changePassword(req.user!.userId, currentPassword, newPassword);
+  return ApiResponse.success(res, null, 'Password changed successfully');
+});
+
+export const adminResetPassword = asyncHandler(async (req: Request, res: Response) => {
+  const { user_id, new_password } = req.body;
+  await authService.adminResetPassword(req.user!.userId, user_id, new_password);
+  return ApiResponse.success(res, null, 'Password reset successfully');
+});

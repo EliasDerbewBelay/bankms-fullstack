@@ -16,11 +16,14 @@ import accountsRoutes from './modules/accounts/accounts.routes';
 import transactionsRoutes from './modules/transactions/transactions.routes';
 import loansRoutes from './modules/loans/loans.routes';
 import adminRoutes from './modules/admin/admin.routes';
+import tellerDrawersRoutes from './modules/teller-drawers/teller-drawers.routes';
 import cardsRoutes from './modules/cards/cards.routes';
 import atmRoutes from './modules/atm/atm.routes';
 import reportsRoutes from './modules/reports/reports.routes';
 import notificationsRoutes from './modules/notifications/notifications.routes';
 import settingsRoutes from './modules/settings/settings.routes';
+import beneficiariesRoutes from './modules/beneficiaries/beneficiaries.routes';
+import utilityPaymentsRoutes from './modules/utility-payments/utility-payments.routes';
 
 const app: Application = express();
 
@@ -95,6 +98,9 @@ app.use(`${API_PREFIX}/atm`, atmRoutes);
 app.use(`${API_PREFIX}/reports`, reportsRoutes);
 app.use(`${API_PREFIX}/notifications`, notificationsRoutes);
 app.use(`${API_PREFIX}/settings`, settingsRoutes);
+app.use(`${API_PREFIX}/beneficiaries`, beneficiariesRoutes);
+app.use(`${API_PREFIX}/utility-payments`, utilityPaymentsRoutes);
+app.use(`${API_PREFIX}/teller-drawers`, tellerDrawersRoutes);
 
 // ── 404 handler ───────────────────────────────────────────────
 app.use(notFoundHandler);

@@ -82,7 +82,12 @@ export class LoansService {
     requested_amount: number;
     requested_term_months: number;
     purpose: string;
+    requesting_customer_id?: number | null;
   }) {
+    if (data.requesting_customer_id && data.customer_id !== data.requesting_customer_id) {
+      throw ApiError.forbidden('You can only apply for a loan for yourself');
+    }
+
     return prisma.loan_application.create({
       data: {
         ...data,
@@ -100,6 +105,7 @@ export class LoansService {
     rejection_reason?: string;
     notes?: string;
     reviewed_by_id: number;
+    reviewer_role: string;
   }) {
     const app = await prisma.loan_application.findUnique({ where: { application_id: id } });
     if (!app) throw ApiError.notFound('Application not found');
@@ -109,7 +115,12 @@ export class LoansService {
     if (data.status === 'REJECTED' && !data.rejection_reason)
       throw ApiError.badRequest('Rejection reason is required');
 
-    return prisma.loan_application.update({
+    // Rule: BRANCH_MANAGER required for loans > 50,000
+    if (data.status === 'APPROVED' && Number(app.requested_amount) > 50000 && data.reviewer_role !== 'BRANCH_MANAGER' && data.reviewer_role !== 'ADMIN') {
+      throw ApiError.forbidden('Only a Branch Manager can approve loans over $50,000');
+    }
+
+    const updatedApp = await prisma.loan_application.update({
       where: { application_id: id },
       data: {
         status: data.status as any,
@@ -119,6 +130,20 @@ export class LoansService {
         reviewed_at: new Date(),
       },
     });
+
+    await prisma.audit_log.create({
+      data: {
+        action_type: 'UPDATE',
+        entity_type: 'loan_application',
+        entity_id: id,
+        performed_by_user_id: data.reviewed_by_id,
+        details: `Application status changed to ${data.status}`,
+        old_values: { status: app.status } as any,
+        new_values: { status: updatedApp.status } as any,
+      },
+    });
+
+    return updatedApp;
   }
 
   async createLoan(applicationId: number, data: {
@@ -137,60 +162,75 @@ export class LoansService {
     const maturityDate = new Date(startDate);
     maturityDate.setMonth(maturityDate.getMonth() + app.requested_term_months);
 
-    const loan = await prisma.loan.create({
-      data: {
-        loan_number: generateLoanNumber(),
-        application_id: applicationId,
-        customer_id: app.customer_id,
-        loan_type: app.loan_type,
-        principal_amount: app.requested_amount,
-        outstanding_balance: app.requested_amount,
-        interest_rate: data.interest_rate,
-        term_months: app.requested_term_months,
-        start_date: startDate,
-        maturity_date: maturityDate,
-        disbursement_account_id: data.disbursement_account_id,
-        approved_by_id: data.approved_by_id,
-        purpose: app.purpose,
-      },
-    });
-
-    // Generate repayment schedule
-    const monthlyRate = data.interest_rate / 12;
-    const requestedAmountNum = Number(app.requested_amount);
-    const emi =
-      (requestedAmountNum * monthlyRate * Math.pow(1 + monthlyRate, app.requested_term_months)) /
-      (Math.pow(1 + monthlyRate, app.requested_term_months) - 1);
-
-    let balance = requestedAmountNum;
-    const scheduleData = [];
-
-    for (let i = 1; i <= app.requested_term_months; i++) {
-      const interestDue = balance * monthlyRate;
-      const principalDue = emi - interestDue;
-      balance -= principalDue;
-
-      const dueDate = new Date(startDate);
-      dueDate.setMonth(dueDate.getMonth() + i);
-
-      scheduleData.push({
-        loan_id: loan.loan_id,
-        installment_number: i,
-        due_date: dueDate,
-        principal_due: Math.round(principalDue * 100) / 100,
-        interest_due: Math.round(interestDue * 100) / 100,
-        total_due: Math.round(emi * 100) / 100,
+    return prisma.$transaction(async (tx) => {
+      const loan = await tx.loan.create({
+        data: {
+          loan_number: generateLoanNumber(),
+          application_id: applicationId,
+          customer_id: app.customer_id,
+          loan_type: app.loan_type,
+          principal_amount: app.requested_amount,
+          outstanding_balance: app.requested_amount,
+          interest_rate: data.interest_rate,
+          term_months: app.requested_term_months,
+          start_date: startDate,
+          maturity_date: maturityDate,
+          disbursement_account_id: data.disbursement_account_id,
+          approved_by_id: data.approved_by_id,
+          purpose: app.purpose,
+        },
       });
-    }
 
-    await prisma.repayment_schedule.createMany({ data: scheduleData });
+      const monthlyRate = data.interest_rate / 12;
+      const requestedAmountNum = Number(app.requested_amount);
+      const emi =
+        (requestedAmountNum * monthlyRate * Math.pow(1 + monthlyRate, app.requested_term_months)) /
+        (Math.pow(1 + monthlyRate, app.requested_term_months) - 1);
 
-    await prisma.loan_application.update({
-      where: { application_id: applicationId },
-      data: { status: 'DISBURSED' },
+      let balance = requestedAmountNum;
+      const scheduleData = [];
+
+      for (let i = 1; i <= app.requested_term_months; i++) {
+        const interestDue = balance * monthlyRate;
+        const principalDue = emi - interestDue;
+        balance -= principalDue;
+
+        const dueDate = new Date(startDate);
+        dueDate.setMonth(dueDate.getMonth() + i);
+
+        scheduleData.push({
+          loan_id: loan.loan_id,
+          installment_number: i,
+          due_date: dueDate,
+          principal_due: Math.round(principalDue * 100) / 100,
+          interest_due: Math.round(interestDue * 100) / 100,
+          total_due: Math.round(emi * 100) / 100,
+        });
+      }
+
+      await tx.repayment_schedule.createMany({ data: scheduleData });
+
+      const oldApp = await tx.loan_application.findUnique({ where: { application_id: applicationId } });
+
+      const updatedApp = await tx.loan_application.update({
+        where: { application_id: applicationId },
+        data: { status: 'DISBURSED' },
+      });
+
+      await tx.audit_log.create({
+        data: {
+          action_type: 'UPDATE',
+          entity_type: 'loan_application',
+          entity_id: applicationId,
+          performed_by_user_id: data.approved_by_id,
+          details: 'Loan application status changed to DISBURSED',
+          old_values: { status: oldApp?.status } as any,
+          new_values: { status: updatedApp.status } as any,
+        },
+      });
+
+      return loan;
     });
-
-    return loan;
   }
 
   async getSchedule(loanId: number) {

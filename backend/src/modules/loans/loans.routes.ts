@@ -1,7 +1,8 @@
 import { Router } from 'express';
 import {
   listApplications, listLoans, getLoan, submitApplication,
-  reviewApplication, createLoan, getSchedule, getLoanStats,
+  reviewApplication, createLoan, getSchedule, getLoanStats, listMyLoans,
+  listMyApplications
 } from './loans.controller';
 import { authenticate } from '../../middleware/authenticate';
 import { authorize } from '../../middleware/authorize';
@@ -10,6 +11,8 @@ const router = Router();
 router.use(authenticate);
 
 router.get('/stats', authorize('BRANCH_MANAGER'), getLoanStats);
+router.get('/my', authorize('CUSTOMER'), listMyLoans);
+router.get('/applications/my', authorize('CUSTOMER'), listMyApplications);
 router.get('/applications', authorize('TELLER'), listApplications);
 router.post('/applications', authorize('CUSTOMER'), submitApplication);
 router.patch('/applications/:id/review', authorize('SUPERVISOR'), reviewApplication);

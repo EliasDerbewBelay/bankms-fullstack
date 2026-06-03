@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '../../store/auth.store';
 import { Sidebar } from '../../components/layout/sidebar';
+import { Topbar } from '../../components/layout/topbar';
 import { Loader2 } from 'lucide-react';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -33,9 +34,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   return (
     <div className="flex h-screen bg-background overflow-hidden">
       <Sidebar />
-      <main className="flex-1 overflow-y-auto">
-        <div className="p-6 lg:p-8 max-w-[1600px] mx-auto">{children}</div>
-      </main>
+      <div className="flex flex-1 flex-col overflow-hidden">
+        <Topbar />
+        <main className="flex-1 overflow-y-auto">
+          <div className="p-6 lg:p-8 max-w-[1600px] mx-auto">{children}</div>
+        </main>
+      </div>
     </div>
   );
 }

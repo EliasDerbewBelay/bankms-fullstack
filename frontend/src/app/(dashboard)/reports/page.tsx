@@ -3,294 +3,140 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../../../lib/api';
-import { formatCurrency } from '../../../lib/utils';
-import { BarChart3, RefreshCw } from 'lucide-react';
-import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, PieChart, Pie, Cell, AreaChart,
-  Area, Legend,
-} from 'recharts';
+import { ArrowLeftRight, FileText, Users, Landmark, Download, BarChart3, ShieldAlert } from 'lucide-react';
+import { useToast } from '../../../components/ui/toaster';
+import { useAuthStore } from '../../../store/auth.store';
 
-const COLORS = ['#3b5bdb', '#0f6e56', '#f59e0b', '#ef4444', '#6366f1', '#ec4899', '#14b8a6', '#8b5cf6'];
+interface ReportConfig {
+  key: string;
+  title: string;
+  description: string;
+  icon: React.ElementType;
+  endpoint: string;
+}
 
-type ReportTab = 'transactions' | 'loans' | 'accounts';
-
-const DAYS_OPTIONS = [7, 14, 30, 90, 180, 365];
+const REPORTS: ReportConfig[] = [
+  { key: 'transactions', title: 'Transaction Summary', description: 'Daily transaction counts, volumes, and channel breakdown.', icon: ArrowLeftRight, endpoint: '/reports/transactions' },
+  { key: 'loans', title: 'Loan Portfolio Aging', description: 'Loan status breakdown, NPL ratio, and overdue installments.', icon: FileText, endpoint: '/reports/loans' },
+  { key: 'customers', title: 'Customer KYC Status', description: 'KYC verification rates, pending reviews, and risk profiles.', icon: Users, endpoint: '/reports/customers' },
+  { key: 'atm', title: 'ATM Performance', description: 'Cash levels, refill history, and uptime per ATM.', icon: Landmark, endpoint: '/reports/atm' },
+];
 
 export default function ReportsPage() {
-  const [tab, setTab] = useState<ReportTab>('transactions');
-  const [days, setDays] = useState(30);
+  const { user } = useAuthStore();
+  const toast = useToast();
+  const isManagerPlus = ['BRANCH_MANAGER', 'ADMIN'].includes(user?.role ?? '');
 
-  const txReport = useQuery({
-    queryKey: ['report-transactions', days],
-    queryFn: async () => {
-      const res = await api.get(`/reports/transactions?days=${days}`);
-      return res.data.data;
-    },
-    enabled: tab === 'transactions',
+  if (!isManagerPlus) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 gap-4">
+        <ShieldAlert className="w-12 h-12 text-red-400" />
+        <p className="text-lg font-semibold text-foreground">Access Denied</p>
+        <p className="text-muted-foreground text-sm">Reports are available to Branch Managers and above.</p>
+      </div>
+    );
+  }
+
+  const { data: branches } = useQuery({
+    queryKey: ['admin-branches'],
+    queryFn: async () => { const r = await api.get('/admin/branches'); return r.data.data; },
   });
 
-  const loanReport = useQuery({
-    queryKey: ['report-loans'],
-    queryFn: async () => {
-      const res = await api.get('/reports/loans');
-      return res.data.data;
-    },
-    enabled: tab === 'loans',
-  });
+  // Per-report state
+  const [states, setStates] = useState<Record<string, { fromDate: string; toDate: string; branchId: string; loading: string | null }>>(() =>
+    Object.fromEntries(REPORTS.map(r => [r.key, { fromDate: '', toDate: '', branchId: '', loading: null }]))
+  );
 
-  const accountReport = useQuery({
-    queryKey: ['report-accounts'],
-    queryFn: async () => {
-      const res = await api.get('/reports/accounts');
-      return res.data.data;
-    },
-    enabled: tab === 'accounts',
-  });
+  const updateState = (key: string, field: string, value: string) => {
+    setStates(p => ({ ...p, [key]: { ...p[key], [field]: value } }));
+  };
 
-  const tabs: { id: ReportTab; label: string }[] = [
-    { id: 'transactions', label: 'Transactions' },
-    { id: 'loans', label: 'Loans' },
-    { id: 'accounts', label: 'Accounts' },
-  ];
+  const downloadReport = async (report: ReportConfig, format: 'pdf' | 'xlsx') => {
+    updateState(report.key, 'loading', format);
+    const s = states[report.key];
+    try {
+      const response = await api.get(report.endpoint, {
+        params: { format, ...(s.fromDate && { from_date: s.fromDate }), ...(s.toDate && { to_date: s.toDate }), ...(s.branchId && { branch_id: s.branchId }) },
+        responseType: 'blob',
+      });
+      const url = URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${report.key}-report.${format}`;
+      link.click();
+      URL.revokeObjectURL(url);
+      toast.success('Report downloaded', `${report.title}.${format}`);
+    } catch (e: any) {
+      toast.error(e?.response?.data?.message ?? `Failed to download ${format.toUpperCase()}`);
+    } finally {
+      updateState(report.key, 'loading', '');
+    }
+  };
+
+  const inputClass = 'w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring';
 
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="page-header">
         <div>
-          <h1 className="page-title">Reports &amp; Analytics</h1>
-          <p className="page-subtitle">Financial insights and operational analytics</p>
+          <h1 className="page-title">Reports &amp; Exports</h1>
+          <p className="page-subtitle">Generate and download financial reports</p>
         </div>
-        {tab === 'transactions' && (
-          <select value={days} onChange={e => setDays(Number(e.target.value))}
-            className="rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring">
-            {DAYS_OPTIONS.map(d => (
-              <option key={d} value={d}>Last {d} days</option>
-            ))}
-          </select>
-        )}
+        <BarChart3 className="w-6 h-6 text-muted-foreground" />
       </div>
 
-      {/* Tab switcher */}
-      <div className="flex items-center gap-1 bg-muted rounded-lg p-1 w-fit">
-        {tabs.map(t => (
-          <button key={t.id} onClick={() => setTab(t.id)}
-            className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all
-              ${tab === t.id ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
-            {t.label}
-          </button>
-        ))}
-      </div>
-
-      {/* TRANSACTIONS TAB */}
-      {tab === 'transactions' && (() => {
-        const d = txReport.data;
-        const loading = txReport.isLoading;
-        return (
-          <div className="space-y-6">
-            {/* Trend chart */}
-            <div className="rounded-xl border bg-card p-5 shadow-sm">
-              <h3 className="text-sm font-semibold mb-4">Daily Transaction Volume</h3>
-              {loading ? <div className="h-56 bg-muted rounded animate-pulse" /> : (
-                <ResponsiveContainer width="100%" height={220}>
-                  <AreaChart data={d?.trend ?? []}>
-                    <defs>
-                      <linearGradient id="txGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#3b5bdb" stopOpacity={0.15} />
-                        <stop offset="95%" stopColor="#3b5bdb" stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                    <XAxis dataKey="date" tick={{ fontSize: 11 }} tickFormatter={v => new Date(v).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })} />
-                    <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `${(v / 1000).toFixed(0)}k`} />
-                    <Tooltip formatter={(v: number) => [formatCurrency(v), 'Volume']} />
-                    <Area type="monotone" dataKey="volume" stroke="#3b5bdb" strokeWidth={2} fill="url(#txGrad)" />
-                  </AreaChart>
-                </ResponsiveContainer>
-              )}
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* By Type */}
-              <div className="rounded-xl border bg-card p-5 shadow-sm">
-                <h3 className="text-sm font-semibold mb-4">Volume by Transaction Type</h3>
-                {loading ? <div className="h-48 bg-muted rounded animate-pulse" /> : (
-                  <ResponsiveContainer width="100%" height={220}>
-                    <BarChart data={d?.byType ?? []} layout="vertical">
-                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" horizontal={false} />
-                      <XAxis type="number" tick={{ fontSize: 10 }} tickFormatter={v => `${(v / 1000).toFixed(0)}k`} />
-                      <YAxis type="category" dataKey="type" tick={{ fontSize: 9 }} width={110} tickFormatter={v => v.replace(/_/g, ' ')} />
-                      <Tooltip formatter={(v: number) => [formatCurrency(v), 'Volume']} />
-                      <Bar dataKey="volume" radius={[0, 4, 4, 0]}>
-                        {(d?.byType ?? []).map((_: any, i: number) => (
-                          <Cell key={i} fill={COLORS[i % COLORS.length]} />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                )}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        {REPORTS.map(report => {
+          const s = states[report.key];
+          const isLoading = !!s.loading;
+          return (
+            <div key={report.key} className="rounded-xl border bg-card p-5 shadow-sm space-y-4">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+                  <report.icon className="w-5 h-5 text-primary" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-foreground">{report.title}</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">{report.description}</p>
+                </div>
               </div>
 
-              {/* By Channel */}
-              <div className="rounded-xl border bg-card p-5 shadow-sm">
-                <h3 className="text-sm font-semibold mb-4">Transactions by Channel</h3>
-                {loading ? <div className="h-48 bg-muted rounded animate-pulse" /> : (
-                  <ResponsiveContainer width="100%" height={220}>
-                    <PieChart>
-                      <Pie data={d?.byChannel ?? []} dataKey="count" nameKey="channel" cx="50%" cy="45%"
-                        innerRadius={50} outerRadius={80} paddingAngle={3}>
-                        {(d?.byChannel ?? []).map((_: any, i: number) => (
-                          <Cell key={i} fill={COLORS[i % COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Legend formatter={v => <span style={{ fontSize: 11 }}>{v}</span>} />
-                      <Tooltip />
-                    </PieChart>
-                  </ResponsiveContainer>
-                )}
+              {/* Filters */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-muted-foreground block mb-1">From Date</label>
+                  <input type="date" className={inputClass} value={s.fromDate} onChange={e => updateState(report.key, 'fromDate', e.target.value)} />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground block mb-1">To Date</label>
+                  <input type="date" className={inputClass} value={s.toDate} onChange={e => updateState(report.key, 'toDate', e.target.value)} />
+                </div>
               </div>
-            </div>
-          </div>
-        );
-      })()}
-
-      {/* LOANS TAB */}
-      {tab === 'loans' && (() => {
-        const d = loanReport.data;
-        const loading = loanReport.isLoading;
-        return (
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* By Status */}
-              <div className="rounded-xl border bg-card p-5 shadow-sm">
-                <h3 className="text-sm font-semibold mb-4">Portfolio by Status</h3>
-                {loading ? <div className="h-56 bg-muted rounded animate-pulse" /> : (
-                  <ResponsiveContainer width="100%" height={220}>
-                    <PieChart>
-                      <Pie data={d?.byStatus ?? []} dataKey="outstanding" nameKey="status" cx="50%" cy="45%"
-                        innerRadius={55} outerRadius={85} paddingAngle={3}>
-                        {(d?.byStatus ?? []).map((_: any, i: number) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-                      </Pie>
-                      <Legend formatter={v => <span style={{ fontSize: 10 }}>{v.replace(/_/g, ' ')}</span>} />
-                      <Tooltip formatter={(v: number) => [formatCurrency(v), 'Outstanding']} />
-                    </PieChart>
-                  </ResponsiveContainer>
-                )}
+              <div>
+                <label className="text-xs text-muted-foreground block mb-1">Branch</label>
+                <select className={inputClass} value={s.branchId} onChange={e => updateState(report.key, 'branchId', e.target.value)}>
+                  <option value="">All Branches</option>
+                  {(branches ?? []).map((b: any) => <option key={b.branch_id} value={b.branch_id}>{b.branch_name}</option>)}
+                </select>
               </div>
 
-              {/* By Type */}
-              <div className="rounded-xl border bg-card p-5 shadow-sm">
-                <h3 className="text-sm font-semibold mb-4">Disbursements by Type</h3>
-                {loading ? <div className="h-56 bg-muted rounded animate-pulse" /> : (
-                  <ResponsiveContainer width="100%" height={220}>
-                    <BarChart data={d?.byType ?? []}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                      <XAxis dataKey="type" tick={{ fontSize: 10 }} />
-                      <YAxis tick={{ fontSize: 10 }} tickFormatter={v => `${(v / 1000000).toFixed(1)}M`} />
-                      <Tooltip formatter={(v: number) => [formatCurrency(v), 'Principal']} />
-                      <Bar dataKey="principal" radius={[4, 4, 0, 0]}>
-                        {(d?.byType ?? []).map((_: any, i: number) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                )}
-              </div>
-            </div>
-
-            {/* NPL Table */}
-            <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
-              <div className="px-5 py-4 border-b border-border">
-                <h3 className="text-sm font-semibold">Non-Performing Loans (Top 10)</h3>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-border bg-muted/40">
-                      {['Loan #', 'Customer', 'Type', 'Principal', 'Outstanding', 'Status'].map(h => (
-                        <th key={h} className="text-left px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border">
-                    {loading ? (
-                      Array.from({ length: 3 }).map((_, i) => (
-                        <tr key={i}>{Array.from({ length: 6 }).map((_, j) => (
-                          <td key={j} className="px-4 py-3"><div className="h-4 bg-muted rounded animate-pulse" /></td>
-                        ))}</tr>
-                      ))
-                    ) : (d?.nplLoans ?? []).length === 0 ? (
-                      <tr><td colSpan={6} className="px-4 py-8 text-center text-muted-foreground text-sm">No non-performing loans 🎉</td></tr>
+              {/* Export Buttons */}
+              <div className="flex gap-3">
+                {(['pdf', 'xlsx'] as const).map(fmt => (
+                  <button key={fmt} onClick={() => downloadReport(report, fmt)} disabled={isLoading}
+                    className="flex-1 flex items-center justify-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-medium transition-colors hover:bg-accent disabled:opacity-50">
+                    {s.loading === fmt ? (
+                      <><Download className="w-4 h-4 animate-bounce" /> Downloading…</>
                     ) : (
-                      (d?.nplLoans ?? []).map((loan: any) => (
-                        <tr key={loan.loan_id} className="hover:bg-muted/30 transition-colors">
-                          <td className="px-4 py-3 font-mono text-xs">{loan.loan_number}</td>
-                          <td className="px-4 py-3">{loan.customer?.first_name ? `${loan.customer.first_name} ${loan.customer.last_name}` : loan.customer?.company_name}</td>
-                          <td className="px-4 py-3"><span className="badge-neutral">{loan.loan_type}</span></td>
-                          <td className="px-4 py-3 font-financial">{formatCurrency(Number(loan.principal_amount))}</td>
-                          <td className="px-4 py-3 font-financial text-red-500">{formatCurrency(Number(loan.outstanding_balance))}</td>
-                          <td className="px-4 py-3"><span className="badge-danger">{loan.status.replace(/_/g, ' ')}</span></td>
-                        </tr>
-                      ))
+                      <><Download className="w-4 h-4" /> Export {fmt.toUpperCase()}</>
                     )}
-                  </tbody>
-                </table>
+                  </button>
+                ))}
               </div>
             </div>
-          </div>
-        );
-      })()}
-
-      {/* ACCOUNTS TAB */}
-      {tab === 'accounts' && (() => {
-        const d = accountReport.data;
-        const loading = accountReport.isLoading;
-        return (
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* By Status */}
-              <div className="rounded-xl border bg-card p-5 shadow-sm">
-                <h3 className="text-sm font-semibold mb-4">Total Deposits by Account Status</h3>
-                {loading ? <div className="h-56 bg-muted rounded animate-pulse" /> : (
-                  <ResponsiveContainer width="100%" height={220}>
-                    <BarChart data={d?.byStatus ?? []}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                      <XAxis dataKey="status" tick={{ fontSize: 10 }} />
-                      <YAxis tick={{ fontSize: 10 }} tickFormatter={v => `${(v / 1000000).toFixed(1)}M`} />
-                      <Tooltip formatter={(v: number) => [formatCurrency(v), 'Balance']} />
-                      <Bar dataKey="totalBalance" radius={[4, 4, 0, 0]}>
-                        {(d?.byStatus ?? []).map((_: any, i: number) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                )}
-              </div>
-
-              {/* By Type */}
-              <div className="rounded-xl border bg-card p-5 shadow-sm">
-                <h3 className="text-sm font-semibold mb-4">Account Distribution by Type</h3>
-                {loading ? <div className="h-56 bg-muted rounded animate-pulse" /> : (
-                  <div className="space-y-3 mt-2">
-                    {(d?.byType ?? []).map((item: any, i: number) => (
-                      <div key={item.type}>
-                        <div className="flex justify-between text-xs mb-1">
-                          <span className="text-muted-foreground">{item.type}</span>
-                          <span className="font-medium">{item.count} accounts · {(Number(item.rate) * 100).toFixed(2)}% rate</span>
-                        </div>
-                        <div className="h-2 bg-muted rounded-full overflow-hidden">
-                          <div className="h-full rounded-full" style={{
-                            width: `${(item.count / Math.max(...(d?.byType ?? []).map((a: any) => a.count), 1)) * 100}%`,
-                            backgroundColor: COLORS[i % COLORS.length]
-                          }} />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        );
-      })()}
+          );
+        })}
+      </div>
     </div>
   );
 }

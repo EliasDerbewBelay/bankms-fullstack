@@ -14,21 +14,24 @@ export const getAtmStats = asyncHandler(async (_req: Request, res: Response) => 
   return ApiResponse.success(res, stats, 'ATM stats retrieved');
 });
 
-export const logRefill = asyncHandler(async (req: Request, res: Response) => {
+export const refillAtm = asyncHandler(async (req: Request, res: Response) => {
   const atmId = parseInt(String(req.params.id), 10);
   if (isNaN(atmId)) throw new ApiError('Invalid ATM ID', 400);
 
-  const employeeId = req.user!.linkedEmployeeId;
-  if (!employeeId) throw new ApiError('Employee account required', 403);
+  const amount = Number(req.body.amount);
+  if (isNaN(amount) || amount <= 0) throw new ApiError('Invalid amount', 400);
 
-  const atm = await atmService.logRefill(atmId, employeeId);
+  const atm = await atmService.refillAtm(atmId, amount, req.user!);
   return ApiResponse.success(res, atm, 'ATM refill logged successfully');
 });
 
-export const setMaintenance = asyncHandler(async (req: Request, res: Response) => {
+export const updateStatus = asyncHandler(async (req: Request, res: Response) => {
   const atmId = parseInt(String(req.params.id), 10);
   if (isNaN(atmId)) throw new ApiError('Invalid ATM ID', 400);
 
-  const atm = await atmService.setMaintenanceMode(atmId);
-  return ApiResponse.success(res, atm, 'ATM set to maintenance mode');
+  const { status } = req.body;
+  if (!status) throw new ApiError('Status is required', 400);
+
+  const atm = await atmService.updateStatus(atmId, status, req.user!);
+  return ApiResponse.success(res, atm, `ATM status updated to ${status}`);
 });

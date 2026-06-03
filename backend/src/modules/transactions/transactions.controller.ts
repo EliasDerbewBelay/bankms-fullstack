@@ -10,6 +10,11 @@ export const listTransactions = asyncHandler(async (req: Request, res: Response)
   return ApiResponse.paginated(res, transactions, meta);
 });
 
+export const listMyTransactions = asyncHandler(async (req: Request, res: Response) => {
+  const { transactions, meta } = await service.listMine(req.user!.linkedCustomerId, req);
+  return ApiResponse.paginated(res, transactions, meta);
+});
+
 export const getTransaction = asyncHandler(async (req: Request, res: Response) => {
   const txn = await service.getById(parseInt(req.params.id as string));
   return ApiResponse.success(res, txn);
@@ -32,7 +37,18 @@ export const withdraw = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const internalTransfer = asyncHandler(async (req: Request, res: Response) => {
-  const txn = await service.internalTransfer(req.body);
+  const txn = await service.internalTransfer({
+    ...req.body,
+    requesting_customer_id: req.user!.role === 'CUSTOMER' ? req.user!.linkedCustomerId : null,
+  });
+  return ApiResponse.created(res, txn, 'Transfer successful');
+});
+
+export const beneficiaryTransfer = asyncHandler(async (req: Request, res: Response) => {
+  const txn = await service.beneficiaryTransfer({
+    ...req.body,
+    requesting_customer_id: req.user!.role === 'CUSTOMER' ? req.user!.linkedCustomerId : null,
+  });
   return ApiResponse.created(res, txn, 'Transfer successful');
 });
 

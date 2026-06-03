@@ -10,6 +10,7 @@ interface JwtPayload {
   role: user_role;
   linkedCustomerId?: number | null;
   linkedEmployeeId?: number | null;
+  mustChangePassword?: boolean;
 }
 
 export function authenticate(req: Request, _res: Response, next: NextFunction): void {
@@ -28,7 +29,12 @@ export function authenticate(req: Request, _res: Response, next: NextFunction): 
       role: decoded.role,
       linkedCustomerId: decoded.linkedCustomerId,
       linkedEmployeeId: decoded.linkedEmployeeId,
+      mustChangePassword: decoded.mustChangePassword,
     };
+
+    if (req.user.mustChangePassword && req.baseUrl + req.path !== '/api/v1/auth/change-password') {
+      throw ApiError.forbidden('Password change required before proceeding');
+    }
 
     next();
   } catch (error) {

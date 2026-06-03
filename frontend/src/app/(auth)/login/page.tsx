@@ -8,6 +8,7 @@ import { z } from 'zod';
 import { Eye, EyeOff, Building2, ShieldCheck, Loader2, AlertCircle } from 'lucide-react';
 import { useAuthStore } from '../../../store/auth.store';
 import { cn } from '../../../lib/utils';
+import { ThemeToggle } from '../../../components/ui/theme-toggle';
 
 const loginSchema = z.object({
   username: z.string().min(3, 'Username is required'),
@@ -100,7 +101,10 @@ export default function LoginPage() {
       </div>
 
       {/* Right login form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-6 lg:p-12 bg-background">
+      <div className="relative w-full lg:w-1/2 flex items-center justify-center p-6 lg:p-12 bg-background">
+        <div className="absolute top-4 right-4 lg:top-6 lg:right-6">
+          <ThemeToggle variant="icon" />
+        </div>
         <div className="w-full max-w-md space-y-8 animate-fade-in">
           {/* Mobile logo */}
           <div className="flex lg:hidden items-center gap-3 mb-6">
@@ -226,6 +230,7 @@ export default function LoginPage() {
             {[
               { role: 'Admin', user: 'abebe.girma' },
               { role: 'Manager', user: 'tigist.alemu' },
+              { role: 'Supervisor', user: 'dawit.kebede' },
               { role: 'Teller', user: 'yonas.bekele' },
               { role: 'Customer', user: 'meron.tadesse' },
             ].map((c) => (

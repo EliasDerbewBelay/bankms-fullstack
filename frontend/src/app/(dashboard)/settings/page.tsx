@@ -7,11 +7,12 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { api } from '../../../lib/api';
 import { formatDate } from '../../../lib/utils';
-import { Settings, Lock, Monitor, User, ChevronRight, CheckCircle2, AlertCircle, Eye, EyeOff, LogOut } from 'lucide-react';
+import { Settings, Lock, Monitor, User, ChevronRight, CheckCircle2, AlertCircle, Eye, EyeOff, LogOut, Palette } from 'lucide-react';
 import { useAuthStore } from '../../../store/auth.store';
 import { cn } from '../../../lib/utils';
+import { ThemeToggle } from '../../../components/ui/theme-toggle';
 
-type SettingsTab = 'profile' | 'security' | 'sessions';
+type SettingsTab = 'profile' | 'security' | 'sessions' | 'appearance';
 
 const passwordSchema = z.object({
   currentPassword: z.string().min(1, 'Required'),
@@ -71,6 +72,7 @@ export default function SettingsPage() {
   const tabs: { id: SettingsTab; label: string; icon: ElementType }[] = [
     { id: 'profile', label: 'Profile', icon: User },
     { id: 'security', label: 'Security', icon: Lock },
+    { id: 'appearance', label: 'Appearance', icon: Palette },
     { id: 'sessions', label: 'Active Sessions', icon: Monitor },
   ];
 
@@ -183,12 +185,12 @@ export default function SettingsPage() {
               <h3 className="text-sm font-semibold mb-5">Change Password</h3>
               <form onSubmit={handleSubmit(d => pwMutation.mutate(d))} className="space-y-4 max-w-md">
                 {pwSuccess && (
-                  <div className="flex items-center gap-2 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 text-sm">
+                  <div className="flex items-center gap-2 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 dark:bg-emerald-900/20 dark:border-emerald-800/50 dark:text-emerald-400 px-4 py-3 text-sm">
                     <CheckCircle2 className="w-4 h-4 flex-shrink-0" /> {pwSuccess}
                   </div>
                 )}
                 {pwError && (
-                  <div className="flex items-center gap-2 rounded-lg bg-red-50 border border-red-200 text-red-700 px-4 py-3 text-sm">
+                  <div className="flex items-center gap-2 rounded-lg bg-red-50 border border-red-200 text-red-700 dark:bg-red-900/20 dark:border-red-800/50 dark:text-red-400 px-4 py-3 text-sm">
                     <AlertCircle className="w-4 h-4 flex-shrink-0" /> {pwError}
                   </div>
                 )}
@@ -223,6 +225,29 @@ export default function SettingsPage() {
                   {pwMutation.isPending ? 'Changing…' : 'Change Password'}
                 </button>
               </form>
+            </div>
+          )}
+
+          {/* APPEARANCE TAB */}
+          {tab === 'appearance' && (
+            <div>
+              <div className="px-6 py-5 border-b border-border">
+                <h3 className="text-sm font-semibold">Appearance</h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Customise how the dashboard looks on this device
+                </p>
+              </div>
+              <div className="p-6">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <div>
+                    <p className="text-sm font-medium text-foreground">Theme</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Choose a light or dark theme, or follow your system setting.
+                    </p>
+                  </div>
+                  <ThemeToggle variant="segmented" />
+                </div>
+              </div>
             </div>
           )}
 

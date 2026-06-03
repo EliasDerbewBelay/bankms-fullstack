@@ -6,26 +6,32 @@ import { api } from '../../../lib/api';
 import { formatCurrency, formatDate, getStatusBadge } from '../../../lib/utils';
 import { FileText, ChevronLeft, ChevronRight, RefreshCw, Eye, Plus } from 'lucide-react';
 import Link from 'next/link';
+import { useAuthStore } from '../../../store/auth.store';
 
 const LOAN_STATUSES = ['', 'PENDING_DISBURSEMENT', 'ACTIVE', 'REPAID', 'DEFAULTED', 'WRITTEN_OFF'];
 const LOAN_TYPES = ['', 'PERSONAL', 'HOME', 'AUTO', 'CORPORATE', 'EDUCATION', 'AGRICULTURE', 'EMERGENCY'];
 
 export default function LoansPage() {
+  const { user } = useAuthStore();
+  const isCustomer = user?.role === 'CUSTOMER';
   const [view, setView] = useState<'loans' | 'applications'>('loans');
   const [page, setPage] = useState(1);
   const [status, setStatus] = useState('');
   const [loanType, setLoanType] = useState('');
 
   const { data, isLoading, refetch, isFetching } = useQuery({
-    queryKey: [view, page, status, loanType],
+    queryKey: [view, page, status, loanType, isCustomer],
     queryFn: async () => {
       const params = new URLSearchParams({
         page: String(page), limit: '15',
         ...(status && { status }),
         ...(loanType && { loan_type: loanType }),
       });
-      const endpoint = view === 'loans' ? `/loans?${params}` : `/loans/applications?${params}`;
-      const res = await api.get(endpoint);
+      const base =
+        view === 'loans'
+          ? isCustomer ? '/loans/my' : '/loans'
+          : isCustomer ? '/loans/applications/my' : '/loans/applications';
+      const res = await api.get(`${base}?${params}`);
       return res.data;
     },
   });

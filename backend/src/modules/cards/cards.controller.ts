@@ -22,3 +22,19 @@ export const blockCard = asyncHandler(async (req: Request, res: Response) => {
   const blockedCard = await cardsService.blockCard(cardId, req.user!, reason);
   return ApiResponse.success(res, blockedCard, 'Card blocked successfully');
 });
+
+export const issueCard = asyncHandler(async (req: Request, res: Response) => {
+  const { account_id, card_type, card_network, daily_limit, monthly_limit } = req.body;
+  const limits = { daily_limit, monthly_limit };
+  const card = await cardsService.issueCard(account_id, card_type, card_network, req.user!, limits);
+  return ApiResponse.created(res, card, 'Card issued successfully');
+});
+
+export const updateLimits = asyncHandler(async (req: Request, res: Response) => {
+  const cardId = parseInt(String(req.params.id), 10);
+  if (isNaN(cardId)) throw new ApiError('Invalid card ID', 400);
+
+  const { daily_limit, monthly_limit } = req.body;
+  const updatedCard = await cardsService.updateLimits(cardId, daily_limit, monthly_limit, req.user!);
+  return ApiResponse.success(res, updatedCard, 'Card limits updated successfully');
+});

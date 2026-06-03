@@ -9,6 +9,7 @@ declare global {
         role: user_role;
         linkedCustomerId?: number | null;
         linkedEmployeeId?: number | null;
+        mustChangePassword?: boolean;
       };
     }
   }

@@ -17,6 +17,7 @@ interface JwtPayload {
   role: user_role;
   linkedCustomerId?: number | null;
   linkedEmployeeId?: number | null;
+  mustChangePassword?: boolean;
 }
 
 export class AuthService {
@@ -135,6 +136,7 @@ export class AuthService {
       role: user.role,
       linkedCustomerId: user.linked_customer_id,
       linkedEmployeeId: user.linked_employee_id,
+      mustChangePassword: user.must_change_password,
     });
 
     const hashedRefresh = await argon2.hash(tokens.refreshToken);
@@ -201,6 +203,7 @@ export class AuthService {
         role: user.role,
         linkedCustomerId: user.linked_customer_id,
         linkedEmployeeId: user.linked_employee_id,
+        mustChangePassword: user.must_change_password,
       });
     } catch {
       throw ApiError.unauthorized('Invalid or expired refresh token');
@@ -243,5 +246,89 @@ export class AuthService {
 
     const { password_hash, salt, two_factor_secret, ...safeUser } = user;
     return safeUser;
+  }
+
+  async registerCustomer(data: any): Promise<object> {
+    const customerCode = `CUST-${Date.now().toString().slice(-6)}`;
+    const customer = await prisma.customer.create({
+      data: {
+        customer_code: customerCode,
+        customer_type: data.customer_type,
+        first_name: data.first_name,
+        last_name: data.last_name,
+        company_name: data.company_name,
+        national_id: data.national_id,
+        tax_id: data.tax_id,
+        phone_number: data.phone_number,
+        address: data.address,
+        city: data.city,
+        kyc_status: 'PENDING',
+      },
+    });
+
+    await prisma.audit_log.create({
+      data: {
+        action_type: 'CREATE',
+        entity_type: 'customer',
+        entity_id: customer.customer_id,
+        details: `Customer registered: ${customerCode}`,
+        new_values: customer as any,
+      },
+    });
+
+    return customer;
+  }
+
+  async changePassword(userId: number, currentPass: string, newPass: string): Promise<void> {
+    const user = await prisma.online_user.findUnique({ where: { user_id: userId } });
+    if (!user) throw ApiError.notFound('User not found');
+
+    const isValid = await argon2.verify(user.password_hash, currentPass);
+    if (!isValid) throw ApiError.badRequest('Invalid current password');
+
+    const newHash = await argon2.hash(newPass);
+    await prisma.online_user.update({
+      where: { user_id: userId },
+      data: {
+        password_hash: newHash,
+        must_change_password: false,
+        password_changed_at: new Date(),
+      },
+    });
+
+    await prisma.audit_log.create({
+      data: {
+        action_type: 'PASSWORD_CHANGE',
+        entity_type: 'online_user',
+        entity_id: userId,
+        performed_by_user_id: userId,
+        details: 'User changed their password',
+      },
+    });
+  }
+
+  async adminResetPassword(adminId: number, targetUserId: number, newPass: string): Promise<void> {
+    const user = await prisma.online_user.findUnique({ where: { user_id: targetUserId } });
+    if (!user) throw ApiError.notFound('Target user not found');
+
+    const newHash = await argon2.hash(newPass);
+    await prisma.online_user.update({
+      where: { user_id: targetUserId },
+      data: {
+        password_hash: newHash,
+        must_change_password: true,
+        password_changed_at: new Date(),
+      },
+    });
+
+    await prisma.audit_log.create({
+      data: {
+        action_type: 'PASSWORD_CHANGE',
+        entity_type: 'online_user',
+        entity_id: targetUserId,
+        performed_by_user_id: adminId,
+        details: 'Admin reset user password',
+      },
+    });
   }
 }

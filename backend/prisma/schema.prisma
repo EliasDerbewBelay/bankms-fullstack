@@ -314,6 +314,20 @@ enum utility_type {
   OTHER
 }
 
+enum teller_drawer_status {
+  OPEN
+  CLOSED
+  BALANCING
+}
+
+enum dispute_status {
+  OPEN
+  UNDER_REVIEW
+  ESCALATED
+  RESOLVED
+  REJECTED
+}
+
 // ─── Models ───────────────────────────────────────────────────
 
 model bank {
@@ -335,27 +349,28 @@ model bank {
 }
 
 model branch {
-  branch_id        Int           @id @default(autoincrement())
-  branch_code      String        @unique @db.VarChar(20)
-  branch_name      String        @db.VarChar(200)
+  branch_id        Int             @id @default(autoincrement())
+  branch_code      String          @unique @db.VarChar(20)
+  branch_name      String          @db.VarChar(200)
   address          String
-  city             String        @db.VarChar(100)
-  phone_number     String?       @db.VarChar(20)
-  email            String?       @db.VarChar(150)
+  city             String          @db.VarChar(100)
+  phone_number     String?         @db.VarChar(20)
+  email            String?         @db.VarChar(150)
   bank_id          Int
   parent_branch_id Int?
-  opening_date     DateTime      @db.Date
-  status           branch_status @default(ACTIVE)
-  created_at       DateTime      @default(now()) @db.Timestamptz(6)
-  updated_at       DateTime      @default(now()) @db.Timestamptz(6)
-  bank             bank          @relation(fields: [bank_id], references: [bank_id], onDelete: Restrict)
-  parent_branch    branch?       @relation("branchToParent", fields: [parent_branch_id], references: [branch_id], onDelete: Restrict)
-  sub_branches     branch[]      @relation("branchToParent")
+  opening_date     DateTime        @db.Date
+  status           branch_status   @default(ACTIVE)
+  created_at       DateTime        @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime        @default(now()) @db.Timestamptz(6)
+  bank             bank            @relation(fields: [bank_id], references: [bank_id], onDelete: Restrict)
+  parent_branch    branch?         @relation("branchToParent", fields: [parent_branch_id], references: [branch_id], onDelete: Restrict)
+  sub_branches     branch[]        @relation("branchToParent")
   department       department[]
   employee         employee[]
   account          account[]
   atm              atm[]
   card_issued      card[]
+  tellerDrawers    teller_drawer[]
 }
 
 model department {
@@ -374,113 +389,114 @@ model department {
 }
 
 model employee {
-  employee_id           Int           @id @default(autoincrement())
-  employee_code         String        @unique @db.VarChar(20)
-  first_name            String        @db.VarChar(100)
-  last_name             String        @db.VarChar(100)
-  position              String        @db.VarChar(150)
-  employee_type         employee_type @default(FULL_TIME)
-  salary                Decimal       @db.Decimal(20, 2)
-  hire_date             DateTime      @db.Date
-  termination_date      DateTime?     @db.Date
-  phone_number          String?       @db.VarChar(20)
-  email                 String        @unique @db.VarChar(150)
-  branch_id             Int
-  department_id         Int?
-  manager_id            Int?
-  created_at            DateTime      @default(now()) @db.Timestamptz(6)
-  updated_at            DateTime      @default(now()) @db.Timestamptz(6)
-  branch                branch        @relation(fields: [branch_id], references: [branch_id], onDelete: Restrict)
-  department            department?   @relation("employeeDept", fields: [department_id], references: [department_id], onDelete: SetNull)
-  manager               employee?     @relation("employeeManager", fields: [manager_id], references: [employee_id], onDelete: SetNull)
-  subordinates          employee[]    @relation("employeeManager")
-  managed_departments   department[]  @relation("deptManager")
-  customer              customer[]    @relation("relationshipManager")
-  online_user           online_user[]
-  collateral_valued     collateral[]  @relation("valuedBy")
-  collateral_revalued   collateral_revaluation[]
-  loan_approved         loan[]        @relation("loanApproved")
-  loan_disbursed        loan[]        @relation("loanDisbursed")
-  loan_payment          loan_payment[]
-  card_blocked          card[]
-  atm_refills           atm[]
-  refund_requested      refund[]      @relation("refundRequested")
-  refund_approved       refund[]      @relation("refundApproved")
-  transaction_processed transaction[]
-  account_opened        account[]
+  employee_id               Int                      @id @default(autoincrement())
+  employee_code             String                   @unique @db.VarChar(20)
+  first_name                String                   @db.VarChar(100)
+  last_name                 String                   @db.VarChar(100)
+  position                  String                   @db.VarChar(150)
+  employee_type             employee_type            @default(FULL_TIME)
+  salary                    Decimal                  @db.Decimal(20, 2)
+  hire_date                 DateTime                 @db.Date
+  termination_date          DateTime?                @db.Date
+  phone_number              String?                  @db.VarChar(20)
+  email                     String                   @unique @db.VarChar(150)
+  branch_id                 Int
+  department_id             Int?
+  manager_id                Int?
+  created_at                DateTime                 @default(now()) @db.Timestamptz(6)
+  updated_at                DateTime                 @default(now()) @db.Timestamptz(6)
+  branch                    branch                   @relation(fields: [branch_id], references: [branch_id], onDelete: Restrict)
+  department                department?              @relation("employeeDept", fields: [department_id], references: [department_id], onDelete: SetNull)
+  manager                   employee?                @relation("employeeManager", fields: [manager_id], references: [employee_id], onDelete: SetNull)
+  subordinates              employee[]               @relation("employeeManager")
+  managed_departments       department[]             @relation("deptManager")
+  customer                  customer[]               @relation("relationshipManager")
+  online_user               online_user[]
+  collateral_valued         collateral[]             @relation("valuedBy")
+  collateral_revalued       collateral_revaluation[]
+  loan_approved             loan[]                   @relation("loanApproved")
+  loan_disbursed            loan[]                   @relation("loanDisbursed")
+  loan_payment              loan_payment[]
+  card_blocked              card[]
+  atm_refills               atm[]
+  refund_requested          refund[]                 @relation("refundRequested")
+  refund_approved           refund[]                 @relation("refundApproved")
+  transaction_processed     transaction[]
+  account_opened            account[]
   loan_application_reviewed loan_application[]
+  tellerDrawers             teller_drawer[]
 }
 
 model currency {
-  currency_id    Int              @id @default(autoincrement())
-  currency_code  String           @unique @db.VarChar(3)
-  currency_name  String           @db.VarChar(100)
-  symbol         String           @db.VarChar(10)
-  is_base        Boolean          @default(false)
-  is_active      Boolean          @default(true)
-  created_at     DateTime         @default(now()) @db.Timestamptz(6)
-  account        account[]
-  exchange_from  exchange_rate[]  @relation("fromCurrency")
-  exchange_to    exchange_rate[]  @relation("toCurrency")
-  transaction    transaction[]
-  transaction_settled transaction[] @relation("settledCurrency")
-  transaction_fee transaction_fee[]
-  standing_order standing_order[]
-  utility_payment utility_payment[]
+  currency_id         Int               @id @default(autoincrement())
+  currency_code       String            @unique @db.VarChar(3)
+  currency_name       String            @db.VarChar(100)
+  symbol              String            @db.VarChar(10)
+  is_base             Boolean           @default(false)
+  is_active           Boolean           @default(true)
+  created_at          DateTime          @default(now()) @db.Timestamptz(6)
+  account             account[]
+  exchange_from       exchange_rate[]   @relation("fromCurrency")
+  exchange_to         exchange_rate[]   @relation("toCurrency")
+  transaction         transaction[]
+  transaction_settled transaction[]     @relation("settledCurrency")
+  transaction_fee     transaction_fee[]
+  standing_order      standing_order[]
+  utility_payment     utility_payment[]
 }
 
 model exchange_rate {
-  rate_id          Int      @id @default(autoincrement())
+  rate_id          Int       @id @default(autoincrement())
   from_currency_id Int
   to_currency_id   Int
-  rate             Decimal  @db.Decimal(20, 8)
-  effective_date   DateTime @default(now()) @db.Timestamptz(6)
+  rate             Decimal   @db.Decimal(20, 8)
+  effective_date   DateTime  @default(now()) @db.Timestamptz(6)
   expiry_date      DateTime? @db.Timestamptz(6)
-  source           String?  @default("NBE") @db.VarChar(100)
+  source           String?   @default("NBE") @db.VarChar(100)
   created_by       Int?
-  created_at       DateTime @default(now()) @db.Timestamptz(6)
-  from_currency    currency @relation("fromCurrency", fields: [from_currency_id], references: [currency_id], onDelete: Restrict)
-  to_currency      currency @relation("toCurrency", fields: [to_currency_id], references: [currency_id], onDelete: Restrict)
+  created_at       DateTime  @default(now()) @db.Timestamptz(6)
+  from_currency    currency  @relation("fromCurrency", fields: [from_currency_id], references: [currency_id], onDelete: Restrict)
+  to_currency      currency  @relation("toCurrency", fields: [to_currency_id], references: [currency_id], onDelete: Restrict)
 }
 
 model account_type {
-  account_type_id Int                  @id @default(autoincrement())
-  type_name       String               @unique @db.VarChar(100)
-  interest_rate   Decimal              @default(0.0000) @db.Decimal(6, 4)
-  minimum_balance Decimal              @default(0.00) @db.Decimal(20, 2)
-  maximum_balance Decimal?             @db.Decimal(20, 2)
-  calc_method     interest_calc_method @default(SIMPLE)
-  accrual_frequency Int               @default(30)
-  description     String?
-  is_active       Boolean              @default(true)
-  created_at      DateTime             @default(now()) @db.Timestamptz(6)
-  updated_at      DateTime             @default(now()) @db.Timestamptz(6)
-  account         account[]
+  account_type_id   Int                  @id @default(autoincrement())
+  type_name         String               @unique @db.VarChar(100)
+  interest_rate     Decimal              @default(0.0000) @db.Decimal(6, 4)
+  minimum_balance   Decimal              @default(0.00) @db.Decimal(20, 2)
+  maximum_balance   Decimal?             @db.Decimal(20, 2)
+  calc_method       interest_calc_method @default(SIMPLE)
+  accrual_frequency Int                  @default(30)
+  description       String?
+  is_active         Boolean              @default(true)
+  created_at        DateTime             @default(now()) @db.Timestamptz(6)
+  updated_at        DateTime             @default(now()) @db.Timestamptz(6)
+  account           account[]
 }
 
 model customer {
-  customer_id             Int            @id @default(autoincrement())
-  customer_code           String         @unique @db.VarChar(20)
+  customer_id             Int                @id @default(autoincrement())
+  customer_code           String             @unique @db.VarChar(20)
   customer_type           customer_type
-  first_name              String?        @db.VarChar(100)
-  last_name               String?        @db.VarChar(100)
-  date_of_birth           DateTime?      @db.Date
-  national_id             String?        @unique @db.VarChar(50)
-  company_name            String?        @db.VarChar(200)
-  tax_id                  String?        @unique @db.VarChar(50)
-  incorporation_date      DateTime?      @db.Date
+  first_name              String?            @db.VarChar(100)
+  last_name               String?            @db.VarChar(100)
+  date_of_birth           DateTime?          @db.Date
+  national_id             String?            @unique @db.VarChar(50)
+  company_name            String?            @db.VarChar(200)
+  tax_id                  String?            @unique @db.VarChar(50)
+  incorporation_date      DateTime?          @db.Date
   address                 String
-  city                    String         @db.VarChar(100)
-  phone_number            String         @unique @db.VarChar(20)
-  email                   String?        @unique @db.VarChar(150)
-  kyc_status              kyc_status     @default(PENDING)
-  risk_profile            risk_profile   @default(LOW)
-  risk_score              Decimal?       @default(0.00) @db.Decimal(5, 2)
-  registration_date       DateTime       @default(now()) @db.Date
+  city                    String             @db.VarChar(100)
+  phone_number            String             @unique @db.VarChar(20)
+  email                   String?            @unique @db.VarChar(150)
+  kyc_status              kyc_status         @default(PENDING)
+  risk_profile            risk_profile       @default(LOW)
+  risk_score              Decimal?           @default(0.00) @db.Decimal(5, 2)
+  registration_date       DateTime           @default(now()) @db.Date
   relationship_manager_id Int?
-  created_at              DateTime       @default(now()) @db.Timestamptz(6)
-  updated_at              DateTime       @default(now()) @db.Timestamptz(6)
-  relationship_manager    employee?      @relation("relationshipManager", fields: [relationship_manager_id], references: [employee_id], onDelete: SetNull)
+  created_at              DateTime           @default(now()) @db.Timestamptz(6)
+  updated_at              DateTime           @default(now()) @db.Timestamptz(6)
+  relationship_manager    employee?          @relation("relationshipManager", fields: [relationship_manager_id], references: [employee_id], onDelete: SetNull)
   customer_account        customer_account[]
   online_user             online_user?
   loan                    loan[]
@@ -488,37 +504,38 @@ model customer {
   guarantor               guarantor[]
   beneficiary             beneficiary[]
   utility_payment         utility_payment[]
+  disputes                dispute[]
 }
 
 model account {
-  account_id              Int            @id @default(autoincrement())
-  account_number          String         @unique @db.VarChar(20)
-  iban                    String?        @unique @db.VarChar(34)
-  account_type_id         Int
-  currency_id             Int
-  balance                 Decimal        @default(0.00) @db.Decimal(20, 2)
-  available_balance       Decimal        @default(0.00) @db.Decimal(20, 2)
-  hold_amount             Decimal        @default(0.00) @db.Decimal(20, 2)
-  open_date               DateTime       @default(now()) @db.Date
-  close_date              DateTime?      @db.Date
-  status                  account_status @default(ACTIVE)
-  branch_id               Int
-  opened_by_employee_id   Int?
-  created_at              DateTime       @default(now()) @db.Timestamptz(6)
-  updated_at              DateTime       @default(now()) @db.Timestamptz(6)
-  account_type            account_type   @relation(fields: [account_type_id], references: [account_type_id], onDelete: Restrict)
-  currency                currency       @relation(fields: [currency_id], references: [currency_id], onDelete: Restrict)
-  branch                  branch         @relation(fields: [branch_id], references: [branch_id], onDelete: Restrict)
-  opened_by               employee?      @relation(fields: [opened_by_employee_id], references: [employee_id], onDelete: SetNull)
-  customer_account        customer_account[]
-  transaction_from        transaction[]  @relation("fromAccount")
-  transaction_to          transaction[]  @relation("toAccount")
-  interest_accrual        interest_accrual[]
-  card                    card[]
-  loan_disbursement       loan[]
-  standing_order          standing_order[]
-  utility_payment         utility_payment[]
-  refund                  refund[]
+  account_id            Int                @id @default(autoincrement())
+  account_number        String             @unique @db.VarChar(20)
+  iban                  String?            @unique @db.VarChar(34)
+  account_type_id       Int
+  currency_id           Int
+  balance               Decimal            @default(0.00) @db.Decimal(20, 2)
+  available_balance     Decimal            @default(0.00) @db.Decimal(20, 2)
+  hold_amount           Decimal            @default(0.00) @db.Decimal(20, 2)
+  open_date             DateTime           @default(now()) @db.Date
+  close_date            DateTime?          @db.Date
+  status                account_status     @default(ACTIVE)
+  branch_id             Int
+  opened_by_employee_id Int?
+  created_at            DateTime           @default(now()) @db.Timestamptz(6)
+  updated_at            DateTime           @default(now()) @db.Timestamptz(6)
+  account_type          account_type       @relation(fields: [account_type_id], references: [account_type_id], onDelete: Restrict)
+  currency              currency           @relation(fields: [currency_id], references: [currency_id], onDelete: Restrict)
+  branch                branch             @relation(fields: [branch_id], references: [branch_id], onDelete: Restrict)
+  opened_by             employee?          @relation(fields: [opened_by_employee_id], references: [employee_id], onDelete: SetNull)
+  customer_account      customer_account[]
+  transaction_from      transaction[]      @relation("fromAccount")
+  transaction_to        transaction[]      @relation("toAccount")
+  interest_accrual      interest_accrual[]
+  card                  card[]
+  loan_disbursement     loan[]
+  standing_order        standing_order[]
+  utility_payment       utility_payment[]
+  refund                refund[]
 }
 
 model customer_account {
@@ -535,30 +552,30 @@ model customer_account {
 }
 
 model online_user {
-  user_id                Int                  @id @default(autoincrement())
-  username               String               @unique @db.VarChar(100)
-  password_hash          String
-  salt                   String               @db.VarChar(255)
-  role                   user_role
-  linked_customer_id     Int?                 @unique
-  linked_employee_id     Int?                 @unique
-  last_login             DateTime?            @db.Timestamptz(6)
-  last_login_ip          String?              @db.VarChar(45)
-  two_factor_enabled     Boolean              @default(false)
-  two_factor_secret      String?
-  account_locked         Boolean              @default(false)
-  failed_login_attempts  Int                  @default(0)
-  lockout_until          DateTime?            @db.Timestamptz(6)
-  must_change_password   Boolean              @default(true)
-  password_changed_at    DateTime?            @db.Timestamptz(6)
-  created_at             DateTime             @default(now()) @db.Timestamptz(6)
-  updated_at             DateTime             @default(now()) @db.Timestamptz(6)
-  linked_customer        customer?            @relation(fields: [linked_customer_id], references: [customer_id], onDelete: Cascade)
-  linked_employee        employee?            @relation(fields: [linked_employee_id], references: [employee_id], onDelete: Cascade)
-  session                session[]
-  password_history       password_history[]
-  audit_log              audit_log[]
-  notification           notification[]
+  user_id               Int                @id @default(autoincrement())
+  username              String             @unique @db.VarChar(100)
+  password_hash         String
+  salt                  String             @db.VarChar(255)
+  role                  user_role
+  linked_customer_id    Int?               @unique
+  linked_employee_id    Int?               @unique
+  last_login            DateTime?          @db.Timestamptz(6)
+  last_login_ip         String?            @db.VarChar(45)
+  two_factor_enabled    Boolean            @default(false)
+  two_factor_secret     String?
+  account_locked        Boolean            @default(false)
+  failed_login_attempts Int                @default(0)
+  lockout_until         DateTime?          @db.Timestamptz(6)
+  must_change_password  Boolean            @default(true)
+  password_changed_at   DateTime?          @db.Timestamptz(6)
+  created_at            DateTime           @default(now()) @db.Timestamptz(6)
+  updated_at            DateTime           @default(now()) @db.Timestamptz(6)
+  linked_customer       customer?          @relation(fields: [linked_customer_id], references: [customer_id], onDelete: Cascade)
+  linked_employee       employee?          @relation(fields: [linked_employee_id], references: [employee_id], onDelete: Cascade)
+  session               session[]
+  password_history      password_history[]
+  audit_log             audit_log[]
+  notification          notification[]
 }
 
 model session {
@@ -584,69 +601,70 @@ model password_history {
 }
 
 model transaction {
-  transaction_id             Int                @id @default(autoincrement())
-  reference_number           String             @unique @db.VarChar(50)
+  transaction_id             Int                 @id @default(autoincrement())
+  reference_number           String              @unique @db.VarChar(50)
   transaction_type           transaction_type
   channel                    transaction_channel @default(BRANCH)
-  amount                     Decimal            @db.Decimal(20, 2)
+  amount                     Decimal             @db.Decimal(20, 2)
   currency_id                Int
-  exchange_rate_applied      Decimal?           @db.Decimal(20, 8)
-  settled_amount             Decimal?           @db.Decimal(20, 2)
+  exchange_rate_applied      Decimal?            @db.Decimal(20, 8)
+  settled_amount             Decimal?            @db.Decimal(20, 2)
   settled_currency_id        Int?
   account_id                 Int
   to_account_id              Int?
-  to_bank_code               String?            @db.VarChar(20)
-  to_iban                    String?            @db.VarChar(34)
-  to_account_name            String?            @db.VarChar(200)
-  reversed_by_transaction_id Int?               @unique
+  to_bank_code               String?             @db.VarChar(20)
+  to_iban                    String?             @db.VarChar(34)
+  to_account_name            String?             @db.VarChar(200)
+  reversed_by_transaction_id Int?                @unique
   description                String?
-  transaction_date           DateTime           @default(now()) @db.Timestamptz(6)
-  value_date                 DateTime           @default(now()) @db.Date
-  status                     transaction_status @default(PENDING)
+  transaction_date           DateTime            @default(now()) @db.Timestamptz(6)
+  value_date                 DateTime            @default(now()) @db.Date
+  status                     transaction_status  @default(PENDING)
   failure_reason             String?
   processed_by_employee_id   Int?
-  created_at                 DateTime           @default(now()) @db.Timestamptz(6)
-  currency                   currency           @relation(fields: [currency_id], references: [currency_id], onDelete: Restrict)
-  settled_currency           currency?          @relation("settledCurrency", fields: [settled_currency_id], references: [currency_id], onDelete: Restrict)
-  from_account               account            @relation("fromAccount", fields: [account_id], references: [account_id], onDelete: Restrict)
-  to_account                 account?           @relation("toAccount", fields: [to_account_id], references: [account_id], onDelete: Restrict)
-  processed_by               employee?          @relation(fields: [processed_by_employee_id], references: [employee_id], onDelete: SetNull)
+  created_at                 DateTime            @default(now()) @db.Timestamptz(6)
+  currency                   currency            @relation(fields: [currency_id], references: [currency_id], onDelete: Restrict)
+  settled_currency           currency?           @relation("settledCurrency", fields: [settled_currency_id], references: [currency_id], onDelete: Restrict)
+  from_account               account             @relation("fromAccount", fields: [account_id], references: [account_id], onDelete: Restrict)
+  to_account                 account?            @relation("toAccount", fields: [to_account_id], references: [account_id], onDelete: Restrict)
+  processed_by               employee?           @relation(fields: [processed_by_employee_id], references: [employee_id], onDelete: SetNull)
   transaction_fee            transaction_fee[]
   loan_payment               loan_payment?
   utility_payment            utility_payment?
-  refund_original            refund[]           @relation("originalTransaction")
-  refund_processed           refund?            @relation("processedTransaction")
+  refund_original            refund[]            @relation("originalTransaction")
+  refund_processed           refund?             @relation("processedTransaction")
   card_transaction           card_transaction?
   atm_transaction            atm_transaction?
   interest_accrual           interest_accrual[]
+  disputes                   dispute[]
 }
 
 model transaction_fee {
-  fee_id         Int         @id @default(autoincrement())
-  transaction_id Int
-  fee_type       fee_type
-  fee_amount     Decimal     @db.Decimal(20, 2)
-  currency_id    Int
-  schedule_id    Int?
-  charged_at     DateTime    @default(now()) @db.Timestamptz(6)
-  transaction    transaction @relation(fields: [transaction_id], references: [transaction_id], onDelete: Restrict)
-  currency       currency    @relation(fields: [currency_id], references: [currency_id], onDelete: Restrict)
+  fee_id          Int              @id @default(autoincrement())
+  transaction_id  Int
+  fee_type        fee_type
+  fee_amount      Decimal          @db.Decimal(20, 2)
+  currency_id     Int
+  schedule_id     Int?
+  charged_at      DateTime         @default(now()) @db.Timestamptz(6)
+  transaction     transaction      @relation(fields: [transaction_id], references: [transaction_id], onDelete: Restrict)
+  currency        currency         @relation(fields: [currency_id], references: [currency_id], onDelete: Restrict)
   charge_schedule charge_schedule? @relation(fields: [schedule_id], references: [schedule_id], onDelete: SetNull)
 }
 
 model interest_accrual {
-  accrual_id     Int         @id @default(autoincrement())
+  accrual_id     Int          @id @default(autoincrement())
   account_id     Int
-  accrued_amount Decimal     @db.Decimal(20, 6)
-  accrual_date   DateTime    @db.Date
-  period_start   DateTime    @db.Date
-  period_end     DateTime    @db.Date
-  rate_applied   Decimal     @db.Decimal(6, 4)
-  is_posted      Boolean     @default(false)
-  posted_at      DateTime?   @db.Timestamptz(6)
+  accrued_amount Decimal      @db.Decimal(20, 6)
+  accrual_date   DateTime     @db.Date
+  period_start   DateTime     @db.Date
+  period_end     DateTime     @db.Date
+  rate_applied   Decimal      @db.Decimal(6, 4)
+  is_posted      Boolean      @default(false)
+  posted_at      DateTime?    @db.Timestamptz(6)
   transaction_id Int?
-  created_at     DateTime    @default(now()) @db.Timestamptz(6)
-  account        account     @relation(fields: [account_id], references: [account_id], onDelete: Restrict)
+  created_at     DateTime     @default(now()) @db.Timestamptz(6)
+  account        account      @relation(fields: [account_id], references: [account_id], onDelete: Restrict)
   transaction    transaction? @relation(fields: [transaction_id], references: [transaction_id], onDelete: SetNull)
 }
 
@@ -672,33 +690,33 @@ model loan_application {
 }
 
 model loan {
-  loan_id                     Int                @id @default(autoincrement())
-  loan_number                 String             @unique @db.VarChar(30)
-  application_id              Int?               @unique
+  loan_id                     Int                  @id @default(autoincrement())
+  loan_number                 String               @unique @db.VarChar(30)
+  application_id              Int?                 @unique
   customer_id                 Int
   loan_type                   loan_type
-  principal_amount            Decimal            @db.Decimal(20, 2)
-  outstanding_balance         Decimal            @db.Decimal(20, 2)
-  interest_rate               Decimal            @db.Decimal(6, 4)
-  interest_rate_type          interest_rate_type @default(FIXED)
-  penalty_rate                Decimal            @default(0.0200) @db.Decimal(6, 4)
+  principal_amount            Decimal              @db.Decimal(20, 2)
+  outstanding_balance         Decimal              @db.Decimal(20, 2)
+  interest_rate               Decimal              @db.Decimal(6, 4)
+  interest_rate_type          interest_rate_type   @default(FIXED)
+  penalty_rate                Decimal              @default(0.0200) @db.Decimal(6, 4)
   term_months                 Int
-  start_date                  DateTime           @db.Date
-  maturity_date               DateTime           @db.Date
-  disbursement_date           DateTime?          @db.Date
-  status                      loan_status        @default(PENDING_DISBURSEMENT)
+  start_date                  DateTime             @db.Date
+  maturity_date               DateTime             @db.Date
+  disbursement_date           DateTime?            @db.Date
+  status                      loan_status          @default(PENDING_DISBURSEMENT)
   purpose                     String?
   disbursement_account_id     Int?
   approved_by_id              Int?
   disbursed_by_id             Int?
-  disbursement_transaction_id Int?               @unique
-  created_at                  DateTime           @default(now()) @db.Timestamptz(6)
-  updated_at                  DateTime           @default(now()) @db.Timestamptz(6)
-  application                 loan_application?  @relation(fields: [application_id], references: [application_id], onDelete: Restrict)
-  customer                    customer           @relation(fields: [customer_id], references: [customer_id], onDelete: Restrict)
-  disbursement_account        account?           @relation(fields: [disbursement_account_id], references: [account_id], onDelete: Restrict)
-  approved_by                 employee?          @relation("loanApproved", fields: [approved_by_id], references: [employee_id], onDelete: SetNull)
-  disbursed_by                employee?          @relation("loanDisbursed", fields: [disbursed_by_id], references: [employee_id], onDelete: SetNull)
+  disbursement_transaction_id Int?                 @unique
+  created_at                  DateTime             @default(now()) @db.Timestamptz(6)
+  updated_at                  DateTime             @default(now()) @db.Timestamptz(6)
+  application                 loan_application?    @relation(fields: [application_id], references: [application_id], onDelete: Restrict)
+  customer                    customer             @relation(fields: [customer_id], references: [customer_id], onDelete: Restrict)
+  disbursement_account        account?             @relation(fields: [disbursement_account_id], references: [account_id], onDelete: Restrict)
+  approved_by                 employee?            @relation("loanApproved", fields: [approved_by_id], references: [employee_id], onDelete: SetNull)
+  disbursed_by                employee?            @relation("loanDisbursed", fields: [disbursed_by_id], references: [employee_id], onDelete: SetNull)
   collateral                  collateral[]
   repayment_schedule          repayment_schedule[]
   loan_payment                loan_payment[]
@@ -706,21 +724,21 @@ model loan {
 }
 
 model collateral {
-  collateral_id      Int               @id @default(autoincrement())
-  loan_id            Int
-  collateral_type    collateral_type
-  description        String
-  estimated_value    Decimal           @db.Decimal(20, 2)
-  forced_sale_value  Decimal           @db.Decimal(20, 2)
-  valuation_date     DateTime          @db.Date
-  owner_name         String            @db.VarChar(200)
-  document_reference String?           @db.VarChar(100)
-  status             collateral_status @default(ACTIVE)
-  valued_by_id       Int?
-  created_at         DateTime          @default(now()) @db.Timestamptz(6)
-  updated_at         DateTime          @default(now()) @db.Timestamptz(6)
-  loan               loan              @relation(fields: [loan_id], references: [loan_id], onDelete: Restrict)
-  valued_by          employee?         @relation("valuedBy", fields: [valued_by_id], references: [employee_id], onDelete: SetNull)
+  collateral_id          Int                      @id @default(autoincrement())
+  loan_id                Int
+  collateral_type        collateral_type
+  description            String
+  estimated_value        Decimal                  @db.Decimal(20, 2)
+  forced_sale_value      Decimal                  @db.Decimal(20, 2)
+  valuation_date         DateTime                 @db.Date
+  owner_name             String                   @db.VarChar(200)
+  document_reference     String?                  @db.VarChar(100)
+  status                 collateral_status        @default(ACTIVE)
+  valued_by_id           Int?
+  created_at             DateTime                 @default(now()) @db.Timestamptz(6)
+  updated_at             DateTime                 @default(now()) @db.Timestamptz(6)
+  loan                   loan                     @relation(fields: [loan_id], references: [loan_id], onDelete: Restrict)
+  valued_by              employee?                @relation("valuedBy", fields: [valued_by_id], references: [employee_id], onDelete: SetNull)
   collateral_revaluation collateral_revaluation[]
 }
 
@@ -759,23 +777,23 @@ model repayment_schedule {
 }
 
 model loan_payment {
-  payment_id        Int                @id @default(autoincrement())
-  loan_id           Int
-  repayment_id      Int
-  transaction_id    Int?               @unique
-  amount            Decimal            @db.Decimal(20, 2)
-  principal_portion Decimal            @default(0.00) @db.Decimal(20, 2)
-  interest_portion  Decimal            @default(0.00) @db.Decimal(20, 2)
-  penalty_portion   Decimal            @default(0.00) @db.Decimal(20, 2)
-  payment_date      DateTime           @default(now()) @db.Timestamptz(6)
-  payment_mode      payment_mode       @default(ACCOUNT_DEBIT)
-  processed_by_id   Int?
-  notes             String?
-  created_at        DateTime           @default(now()) @db.Timestamptz(6)
-  loan              loan               @relation(fields: [loan_id], references: [loan_id], onDelete: Restrict)
+  payment_id         Int                @id @default(autoincrement())
+  loan_id            Int
+  repayment_id       Int
+  transaction_id     Int?               @unique
+  amount             Decimal            @db.Decimal(20, 2)
+  principal_portion  Decimal            @default(0.00) @db.Decimal(20, 2)
+  interest_portion   Decimal            @default(0.00) @db.Decimal(20, 2)
+  penalty_portion    Decimal            @default(0.00) @db.Decimal(20, 2)
+  payment_date       DateTime           @default(now()) @db.Timestamptz(6)
+  payment_mode       payment_mode       @default(ACCOUNT_DEBIT)
+  processed_by_id    Int?
+  notes              String?
+  created_at         DateTime           @default(now()) @db.Timestamptz(6)
+  loan               loan               @relation(fields: [loan_id], references: [loan_id], onDelete: Restrict)
   repayment_schedule repayment_schedule @relation(fields: [repayment_id], references: [repayment_id], onDelete: Restrict)
-  transaction       transaction?       @relation(fields: [transaction_id], references: [transaction_id], onDelete: Restrict)
-  processed_by      employee?          @relation(fields: [processed_by_id], references: [employee_id], onDelete: SetNull)
+  transaction        transaction?       @relation(fields: [transaction_id], references: [transaction_id], onDelete: Restrict)
+  processed_by       employee?          @relation(fields: [processed_by_id], references: [employee_id], onDelete: SetNull)
 }
 
 model guarantor {
@@ -796,103 +814,103 @@ model guarantor {
 }
 
 model card {
-  card_id               Int          @id @default(autoincrement())
-  card_number           String       @unique @db.VarChar(19)
-  masked_number         String       @db.VarChar(19)
-  card_type             card_type
-  card_network          card_network
-  expiry_date           DateTime     @db.Date
-  cvv_hash              String
-  pin_hash              String?
-  status                card_status  @default(ACTIVE)
-  daily_limit           Decimal      @default(10000.00) @db.Decimal(20, 2)
-  monthly_limit         Decimal      @default(100000.00) @db.Decimal(20, 2)
-  current_month_spend   Decimal      @default(0.00) @db.Decimal(20, 2)
-  account_id            Int
-  issued_by_branch_id   Int
-  issued_date           DateTime     @default(now()) @db.Date
-  blocked_date          DateTime?    @db.Date
-  blocked_by_id         Int?
-  block_reason          String?
-  created_at            DateTime     @default(now()) @db.Timestamptz(6)
-  updated_at            DateTime     @default(now()) @db.Timestamptz(6)
-  account               account      @relation(fields: [account_id], references: [account_id], onDelete: Restrict)
-  issued_by_branch      branch       @relation(fields: [issued_by_branch_id], references: [branch_id], onDelete: Restrict)
-  blocked_by            employee?    @relation(fields: [blocked_by_id], references: [employee_id], onDelete: SetNull)
-  card_transaction      card_transaction[]
+  card_id             Int                @id @default(autoincrement())
+  card_number         String             @unique @db.VarChar(19)
+  masked_number       String             @db.VarChar(19)
+  card_type           card_type
+  card_network        card_network
+  expiry_date         DateTime           @db.Date
+  cvv_hash            String
+  pin_hash            String?
+  status              card_status        @default(ACTIVE)
+  daily_limit         Decimal            @default(10000.00) @db.Decimal(20, 2)
+  monthly_limit       Decimal            @default(100000.00) @db.Decimal(20, 2)
+  current_month_spend Decimal            @default(0.00) @db.Decimal(20, 2)
+  account_id          Int
+  issued_by_branch_id Int
+  issued_date         DateTime           @default(now()) @db.Date
+  blocked_date        DateTime?          @db.Date
+  blocked_by_id       Int?
+  block_reason        String?
+  created_at          DateTime           @default(now()) @db.Timestamptz(6)
+  updated_at          DateTime           @default(now()) @db.Timestamptz(6)
+  account             account            @relation(fields: [account_id], references: [account_id], onDelete: Restrict)
+  issued_by_branch    branch             @relation(fields: [issued_by_branch_id], references: [branch_id], onDelete: Restrict)
+  blocked_by          employee?          @relation(fields: [blocked_by_id], references: [employee_id], onDelete: SetNull)
+  card_transaction    card_transaction[]
 }
 
 model card_transaction {
-  card_txn_id      Int         @id @default(autoincrement())
-  card_id          Int
-  transaction_id   Int         @unique
-  merchant_name    String?     @db.VarChar(200)
-  merchant_category String?    @db.VarChar(100)
-  merchant_country String?     @default("ETH") @db.VarChar(3)
-  auth_code        String?     @db.VarChar(20)
-  is_online        Boolean     @default(false)
-  is_international Boolean     @default(false)
-  created_at       DateTime    @default(now()) @db.Timestamptz(6)
-  card             card        @relation(fields: [card_id], references: [card_id], onDelete: Restrict)
-  transaction      transaction @relation(fields: [transaction_id], references: [transaction_id], onDelete: Restrict)
+  card_txn_id       Int         @id @default(autoincrement())
+  card_id           Int
+  transaction_id    Int         @unique
+  merchant_name     String?     @db.VarChar(200)
+  merchant_category String?     @db.VarChar(100)
+  merchant_country  String?     @default("ETH") @db.VarChar(3)
+  auth_code         String?     @db.VarChar(20)
+  is_online         Boolean     @default(false)
+  is_international  Boolean     @default(false)
+  created_at        DateTime    @default(now()) @db.Timestamptz(6)
+  card              card        @relation(fields: [card_id], references: [card_id], onDelete: Restrict)
+  transaction       transaction @relation(fields: [transaction_id], references: [transaction_id], onDelete: Restrict)
 }
 
 model beneficiary {
-  beneficiary_id         Int            @id @default(autoincrement())
+  beneficiary_id         Int              @id @default(autoincrement())
   customer_id            Int
-  beneficiary_name       String         @db.VarChar(200)
-  account_number_or_iban String         @db.VarChar(34)
-  bank_name              String?        @db.VarChar(200)
-  bank_code              String?        @db.VarChar(20)
-  swift_code             String?        @db.VarChar(11)
-  relationship           String?        @db.VarChar(100)
-  is_verified            Boolean        @default(false)
-  is_active              Boolean        @default(true)
-  created_at             DateTime       @default(now()) @db.Timestamptz(6)
-  updated_at             DateTime       @default(now()) @db.Timestamptz(6)
-  customer               customer       @relation(fields: [customer_id], references: [customer_id], onDelete: Restrict)
+  beneficiary_name       String           @db.VarChar(200)
+  account_number_or_iban String           @db.VarChar(34)
+  bank_name              String?          @db.VarChar(200)
+  bank_code              String?          @db.VarChar(20)
+  swift_code             String?          @db.VarChar(11)
+  relationship           String?          @db.VarChar(100)
+  is_verified            Boolean          @default(false)
+  is_active              Boolean          @default(true)
+  created_at             DateTime         @default(now()) @db.Timestamptz(6)
+  updated_at             DateTime         @default(now()) @db.Timestamptz(6)
+  customer               customer         @relation(fields: [customer_id], references: [customer_id], onDelete: Restrict)
   standing_order         standing_order[]
 
   @@unique([customer_id, account_number_or_iban])
 }
 
 model standing_order {
-  order_id            Int           @id @default(autoincrement())
+  order_id            Int             @id @default(autoincrement())
   account_id          Int
   beneficiary_id      Int
   currency_id         Int
-  amount              Decimal       @db.Decimal(20, 2)
+  amount              Decimal         @db.Decimal(20, 2)
   frequency           order_frequency
-  start_date          DateTime      @db.Date
-  end_date            DateTime?     @db.Date
-  next_execution_date DateTime      @db.Date
-  last_execution_date DateTime?     @db.Date
-  status              order_status  @default(ACTIVE)
+  start_date          DateTime        @db.Date
+  end_date            DateTime?       @db.Date
+  next_execution_date DateTime        @db.Date
+  last_execution_date DateTime?       @db.Date
+  status              order_status    @default(ACTIVE)
   description         String?
-  created_at          DateTime      @default(now()) @db.Timestamptz(6)
-  updated_at          DateTime      @default(now()) @db.Timestamptz(6)
-  account             account       @relation(fields: [account_id], references: [account_id], onDelete: Restrict)
-  beneficiary         beneficiary   @relation(fields: [beneficiary_id], references: [beneficiary_id], onDelete: Restrict)
-  currency            currency      @relation(fields: [currency_id], references: [currency_id], onDelete: Restrict)
+  created_at          DateTime        @default(now()) @db.Timestamptz(6)
+  updated_at          DateTime        @default(now()) @db.Timestamptz(6)
+  account             account         @relation(fields: [account_id], references: [account_id], onDelete: Restrict)
+  beneficiary         beneficiary     @relation(fields: [beneficiary_id], references: [beneficiary_id], onDelete: Restrict)
+  currency            currency        @relation(fields: [currency_id], references: [currency_id], onDelete: Restrict)
 }
 
 model atm {
-  atm_id                Int        @id @default(autoincrement())
-  atm_code              String     @unique @db.VarChar(20)
+  atm_id                Int               @id @default(autoincrement())
+  atm_code              String            @unique @db.VarChar(20)
   location              String
-  latitude              Decimal?   @db.Decimal(9, 6)
-  longitude             Decimal?   @db.Decimal(9, 6)
+  latitude              Decimal?          @db.Decimal(9, 6)
+  longitude             Decimal?          @db.Decimal(9, 6)
   branch_id             Int
-  status                atm_status @default(ONLINE)
-  cash_balance          Decimal    @default(0.00) @db.Decimal(20, 2)
-  low_cash_threshold    Decimal    @default(50000.00) @db.Decimal(20, 2)
-  last_refill_date      DateTime?  @db.Timestamptz(6)
+  status                atm_status        @default(ONLINE)
+  cash_balance          Decimal           @default(0.00) @db.Decimal(20, 2)
+  low_cash_threshold    Decimal           @default(50000.00) @db.Decimal(20, 2)
+  last_refill_date      DateTime?         @db.Timestamptz(6)
   last_refill_by_id     Int?
-  last_maintenance_date DateTime?  @db.Timestamptz(6)
-  created_at            DateTime   @default(now()) @db.Timestamptz(6)
-  updated_at            DateTime   @default(now()) @db.Timestamptz(6)
-  branch                branch     @relation(fields: [branch_id], references: [branch_id], onDelete: Restrict)
-  last_refill_by        employee?  @relation(fields: [last_refill_by_id], references: [employee_id], onDelete: SetNull)
+  last_maintenance_date DateTime?         @db.Timestamptz(6)
+  created_at            DateTime          @default(now()) @db.Timestamptz(6)
+  updated_at            DateTime          @default(now()) @db.Timestamptz(6)
+  branch                branch            @relation(fields: [branch_id], references: [branch_id], onDelete: Restrict)
+  last_refill_by        employee?         @relation(fields: [last_refill_by_id], references: [employee_id], onDelete: SetNull)
   atm_transaction       atm_transaction[]
 }
 
@@ -932,40 +950,40 @@ model utility_payment {
 }
 
 model refund {
-  refund_id                  Int           @id @default(autoincrement())
-  original_transaction_id    Int
-  account_id                 Int
-  amount                     Decimal       @db.Decimal(20, 2)
-  reason                     String
-  status                     refund_status @default(PENDING_APPROVAL)
-  requested_by_id            Int?
-  approved_by_id             Int?
-  approved_at                DateTime?     @db.Timestamptz(6)
-  processed_transaction_id   Int?          @unique
-  rejection_reason           String?
-  created_at                 DateTime      @default(now()) @db.Timestamptz(6)
-  updated_at                 DateTime      @default(now()) @db.Timestamptz(6)
-  original_transaction       transaction   @relation("originalTransaction", fields: [original_transaction_id], references: [transaction_id], onDelete: Restrict)
-  account                    account       @relation(fields: [account_id], references: [account_id], onDelete: Restrict)
-  requested_by               employee?     @relation("refundRequested", fields: [requested_by_id], references: [employee_id], onDelete: SetNull)
-  approved_by                employee?     @relation("refundApproved", fields: [approved_by_id], references: [employee_id], onDelete: SetNull)
-  processed_transaction      transaction?  @relation("processedTransaction", fields: [processed_transaction_id], references: [transaction_id], onDelete: Restrict)
+  refund_id                Int           @id @default(autoincrement())
+  original_transaction_id  Int
+  account_id               Int
+  amount                   Decimal       @db.Decimal(20, 2)
+  reason                   String
+  status                   refund_status @default(PENDING_APPROVAL)
+  requested_by_id          Int?
+  approved_by_id           Int?
+  approved_at              DateTime?     @db.Timestamptz(6)
+  processed_transaction_id Int?          @unique
+  rejection_reason         String?
+  created_at               DateTime      @default(now()) @db.Timestamptz(6)
+  updated_at               DateTime      @default(now()) @db.Timestamptz(6)
+  original_transaction     transaction   @relation("originalTransaction", fields: [original_transaction_id], references: [transaction_id], onDelete: Restrict)
+  account                  account       @relation(fields: [account_id], references: [account_id], onDelete: Restrict)
+  requested_by             employee?     @relation("refundRequested", fields: [requested_by_id], references: [employee_id], onDelete: SetNull)
+  approved_by              employee?     @relation("refundApproved", fields: [approved_by_id], references: [employee_id], onDelete: SetNull)
+  processed_transaction    transaction?  @relation("processedTransaction", fields: [processed_transaction_id], references: [transaction_id], onDelete: Restrict)
 }
 
 model charge_schedule {
-  schedule_id    Int                  @id @default(autoincrement())
-  charge_name    String               @db.VarChar(150)
-  charge_type    charge_type
-  applicable_to  charge_applicable_to
-  flat_amount    Decimal?             @default(0.00) @db.Decimal(20, 2)
-  percentage_rate Decimal?            @default(0.0000) @db.Decimal(6, 4)
-  min_charge     Decimal?             @default(0.00) @db.Decimal(20, 2)
-  max_charge     Decimal?             @db.Decimal(20, 2)
-  effective_date DateTime             @db.Date
-  expiry_date    DateTime?            @db.Date
-  is_active      Boolean              @default(true)
-  created_at     DateTime             @default(now()) @db.Timestamptz(6)
-  updated_at     DateTime             @default(now()) @db.Timestamptz(6)
+  schedule_id     Int                  @id @default(autoincrement())
+  charge_name     String               @db.VarChar(150)
+  charge_type     charge_type
+  applicable_to   charge_applicable_to
+  flat_amount     Decimal?             @default(0.00) @db.Decimal(20, 2)
+  percentage_rate Decimal?             @default(0.0000) @db.Decimal(6, 4)
+  min_charge      Decimal?             @default(0.00) @db.Decimal(20, 2)
+  max_charge      Decimal?             @db.Decimal(20, 2)
+  effective_date  DateTime             @db.Date
+  expiry_date     DateTime?            @db.Date
+  is_active       Boolean              @default(true)
+  created_at      DateTime             @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime             @default(now()) @db.Timestamptz(6)
   transaction_fee transaction_fee[]
 }
 
@@ -998,4 +1016,32 @@ model audit_log {
   is_suspicious        Boolean      @default(false)
   timestamp            DateTime     @default(now()) @db.Timestamptz(6)
   performed_by         online_user? @relation(fields: [performed_by_user_id], references: [user_id], onDelete: SetNull)
+}
+
+model teller_drawer {
+  drawer_id       Int                  @id @default(autoincrement())
+  employee_id     Int
+  branch_id       Int
+  status          teller_drawer_status @default(CLOSED)
+  opening_balance Decimal              @default(0.00) @db.Decimal(20, 2)
+  current_balance Decimal              @default(0.00) @db.Decimal(20, 2)
+  opened_at       DateTime?            @db.Timestamptz(6)
+  closed_at       DateTime?            @db.Timestamptz(6)
+  created_at      DateTime             @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime             @default(now()) @db.Timestamptz(6)
+  employee        employee             @relation(fields: [employee_id], references: [employee_id], onDelete: Restrict)
+  branch          branch               @relation(fields: [branch_id], references: [branch_id], onDelete: Restrict)
+}
+
+model dispute {
+  dispute_id     Int            @id @default(autoincrement())
+  customer_id    Int
+  transaction_id Int
+  status         dispute_status @default(OPEN)
+  description    String
+  remarks        Json?
+  created_at     DateTime       @default(now()) @db.Timestamptz(6)
+  updated_at     DateTime       @default(now()) @db.Timestamptz(6)
+  customer       customer       @relation(fields: [customer_id], references: [customer_id], onDelete: Restrict)
+  transaction    transaction    @relation(fields: [transaction_id], references: [transaction_id], onDelete: Restrict)
 }

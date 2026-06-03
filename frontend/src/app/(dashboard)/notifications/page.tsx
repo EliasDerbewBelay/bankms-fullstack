@@ -6,13 +6,13 @@ import { api } from '../../../lib/api';
 import { Bell, CheckCheck, RefreshCw, CreditCard, ArrowLeftRight, FileText, ShieldAlert, Info, Zap } from 'lucide-react';
 
 const typeConfig: Record<string, { icon: ElementType; color: string }> = {
-  TRANSACTION_ALERT: { icon: ArrowLeftRight, color: 'text-blue-500 bg-blue-50' },
-  LOGIN_ALERT: { icon: ShieldAlert, color: 'text-amber-500 bg-amber-50' },
-  LOAN_REMINDER: { icon: FileText, color: 'text-purple-500 bg-purple-50' },
-  CARD_ALERT: { icon: CreditCard, color: 'text-rose-500 bg-rose-50' },
-  ACCOUNT_ALERT: { icon: Zap, color: 'text-teal-500 bg-teal-50' },
-  SYSTEM: { icon: Info, color: 'text-gray-500 bg-gray-100' },
-  OTP: { icon: ShieldAlert, color: 'text-orange-500 bg-orange-50' },
+  TRANSACTION_ALERT: { icon: ArrowLeftRight, color: 'text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-blue-500/10' },
+  LOGIN_ALERT: { icon: ShieldAlert, color: 'text-amber-600 bg-amber-50 dark:text-amber-400 dark:bg-amber-500/10' },
+  LOAN_REMINDER: { icon: FileText, color: 'text-purple-600 bg-purple-50 dark:text-purple-400 dark:bg-purple-500/10' },
+  CARD_ALERT: { icon: CreditCard, color: 'text-rose-600 bg-rose-50 dark:text-rose-400 dark:bg-rose-500/10' },
+  ACCOUNT_ALERT: { icon: Zap, color: 'text-teal-600 bg-teal-50 dark:text-teal-400 dark:bg-teal-500/10' },
+  SYSTEM: { icon: Info, color: 'text-gray-600 bg-gray-100 dark:text-gray-300 dark:bg-gray-500/10' },
+  OTP: { icon: ShieldAlert, color: 'text-orange-600 bg-orange-50 dark:text-orange-400 dark:bg-orange-500/10' },
 };
 
 function formatRelativeTime(date: string) {

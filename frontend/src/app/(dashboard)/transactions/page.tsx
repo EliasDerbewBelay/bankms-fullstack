@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../../../lib/api';
 import { formatCurrency, formatDateTime, getStatusBadge } from '../../../lib/utils';
+import { useAuthStore } from '../../../store/auth.store';
 import {
   Search, ArrowUpRight, ArrowDownLeft, ArrowLeftRight,
   ChevronLeft, ChevronRight, RefreshCw, Zap,
@@ -21,6 +22,8 @@ const txnIcon = (type: string) => {
 };
 
 export default function TransactionsPage() {
+  const { user } = useAuthStore();
+  const isCustomer = user?.role === 'CUSTOMER';
   const [page, setPage] = useState(1);
   const [type, setType] = useState('');
   const [status, setStatus] = useState('');
@@ -29,17 +32,17 @@ export default function TransactionsPage() {
   const [toDate, setToDate] = useState('');
 
   const { data, isLoading, refetch, isFetching } = useQuery({
-    queryKey: ['transactions', page, type, status, channel, fromDate, toDate],
+    queryKey: ['transactions', isCustomer, page, type, status, channel, fromDate, toDate],
     queryFn: async () => {
       const params = new URLSearchParams({
         page: String(page), limit: '20',
         ...(type && { type }),
         ...(status && { status }),
-        ...(channel && { channel }),
+        ...(!isCustomer && channel && { channel }),
         ...(fromDate && { from_date: fromDate }),
         ...(toDate && { to_date: toDate }),
       });
-      const res = await api.get(`/transactions?${params}`);
+      const res = await api.get(`${isCustomer ? '/transactions/my' : '/transactions'}?${params}`);
       return res.data;
     },
   });
@@ -51,7 +54,7 @@ export default function TransactionsPage() {
     <div className="space-y-6 animate-fade-in">
       <div className="page-header">
         <div>
-          <h1 className="page-title">Transactions</h1>
+          <h1 className="page-title">{isCustomer ? 'Transaction History' : 'Transactions'}</h1>
           <p className="page-subtitle">
             {meta ? `${meta.total.toLocaleString()} total transactions` : 'Full transaction history'}
           </p>
@@ -78,11 +81,13 @@ export default function TransactionsPage() {
           <option value="">All Statuses</option>
           {TXN_STATUSES.filter(Boolean).map((s) => <option key={s} value={s}>{s}</option>)}
         </select>
-        <select value={channel} onChange={(e) => { setChannel(e.target.value); setPage(1); }}
-          className="rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring">
-          <option value="">All Channels</option>
-          {CHANNELS.filter(Boolean).map((c) => <option key={c} value={c}>{c}</option>)}
-        </select>
+        {!isCustomer && (
+          <select value={channel} onChange={(e) => { setChannel(e.target.value); setPage(1); }}
+            className="rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring">
+            <option value="">All Channels</option>
+            {CHANNELS.filter(Boolean).map((c) => <option key={c} value={c}>{c}</option>)}
+          </select>
+        )}
         <div className="flex items-center gap-2 ml-auto">
           <label className="text-xs text-muted-foreground">From</label>
           <input type="date" value={fromDate} onChange={(e) => { setFromDate(e.target.value); setPage(1); }}

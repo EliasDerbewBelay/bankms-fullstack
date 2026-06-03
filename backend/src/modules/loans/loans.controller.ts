@@ -15,13 +15,30 @@ export const listLoans = asyncHandler(async (req: Request, res: Response) => {
   return ApiResponse.paginated(res, loans, meta);
 });
 
+export const listMyLoans = asyncHandler(async (req: Request, res: Response) => {
+  // Override customer_id with the requesting user's linked customer ID
+  req.query.customer_id = req.user!.linkedCustomerId?.toString();
+  const { loans, meta } = await service.listLoans(req);
+  return ApiResponse.paginated(res, loans, meta);
+});
+
+export const listMyApplications = asyncHandler(async (req: Request, res: Response) => {
+  // Scope strictly to the requesting customer's own applications.
+  req.query.customer_id = req.user!.linkedCustomerId?.toString();
+  const { applications, meta } = await service.listApplications(req);
+  return ApiResponse.paginated(res, applications, meta);
+});
+
 export const getLoan = asyncHandler(async (req: Request, res: Response) => {
   const loan = await service.getLoanById(parseInt(req.params.id as string));
   return ApiResponse.success(res, loan);
 });
 
 export const submitApplication = asyncHandler(async (req: Request, res: Response) => {
-  const app = await service.submitApplication(req.body);
+  const app = await service.submitApplication({
+    ...req.body,
+    requesting_customer_id: req.user!.role === 'CUSTOMER' ? req.user!.linkedCustomerId : null,
+  });
   return ApiResponse.created(res, app, 'Loan application submitted');
 });
 
@@ -29,6 +46,7 @@ export const reviewApplication = asyncHandler(async (req: Request, res: Response
   const app = await service.reviewApplication(parseInt(req.params.id as string), {
     ...req.body,
     reviewed_by_id: req.user!.linkedEmployeeId,
+    reviewer_role: req.user!.role,
   });
   return ApiResponse.success(res, app, 'Application reviewed');
 });

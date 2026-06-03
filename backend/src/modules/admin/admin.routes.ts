@@ -4,13 +4,13 @@ import {
   getEmployees, getAtmStatus, getExchangeRates, getChargeSchedules,
 } from './admin.controller';
 import { authenticate } from '../../middleware/authenticate';
-import { authorize } from '../../middleware/authorize';
+import { authorize, authorizeExact } from '../../middleware/authorize';
 
 const router = Router();
 router.use(authenticate, authorize('BRANCH_MANAGER'));
 
 router.get('/dashboard', getDashboard);
-router.get('/audit-logs', getAuditLogs);
+router.get('/audit-logs', authorizeExact('ADMIN'), getAuditLogs);
 router.get('/branches', getBranches);
 router.get('/employees', getEmployees);
 router.get('/atm', getAtmStatus);

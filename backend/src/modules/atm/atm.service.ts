@@ -26,32 +26,67 @@ export class AtmService {
     return { total, online, offline, lowCash, outOfCash, maintenance };
   }
 
-  async logRefill(atmId: number, employeeId: number) {
+  async refillAtm(atmId: number, amount: number, user: any) {
     const atm = await prisma.atm.findUnique({ where: { atm_id: atmId } });
     if (!atm) throw new ApiError('ATM not found', 404);
 
-    return prisma.atm.update({
+    const newBalance = Number(atm.cash_balance) + amount;
+    const threshold = Number(atm.low_cash_threshold);
+    let newStatus = atm.status;
+
+    if (newBalance > threshold * 1.2) {
+      newStatus = 'ONLINE';
+    } else if (newBalance > threshold) {
+      newStatus = 'LOW_CASH';
+    }
+
+    const updatedAtm = await prisma.atm.update({
       where: { atm_id: atmId },
       data: {
-        status: 'ONLINE',
+        cash_balance: newBalance,
         last_refill_date: new Date(),
-        last_refill_by_id: employeeId,
-        cash_balance: 1000000,
-      },
-      include: {
-        branch: { select: { branch_name: true, city: true } },
+        last_refill_by_id: user.linkedEmployeeId,
+        status: newStatus as any,
       },
     });
+
+    await prisma.audit_log.create({
+      data: {
+        action_type: 'UPDATE',
+        entity_type: 'atm',
+        entity_id: atmId,
+        performed_by_user_id: user.userId,
+        details: `ATM refilled with ${amount}`,
+        old_values: { cash_balance: atm.cash_balance, status: atm.status } as any,
+        new_values: { cash_balance: updatedAtm.cash_balance, status: updatedAtm.status } as any,
+      },
+    });
+
+    return updatedAtm;
   }
 
-  async setMaintenanceMode(atmId: number) {
+  async updateStatus(atmId: number, status: string, user: any) {
     const atm = await prisma.atm.findUnique({ where: { atm_id: atmId } });
     if (!atm) throw new ApiError('ATM not found', 404);
 
-    return prisma.atm.update({
+    const updatedAtm = await prisma.atm.update({
       where: { atm_id: atmId },
-      data: { status: 'UNDER_MAINTENANCE' },
+      data: { status: status as any },
     });
+
+    await prisma.audit_log.create({
+      data: {
+        action_type: 'UPDATE',
+        entity_type: 'atm',
+        entity_id: atmId,
+        performed_by_user_id: user.userId,
+        details: `ATM status manually changed to ${status}`,
+        old_values: { status: atm.status } as any,
+        new_values: { status: updatedAtm.status } as any,
+      },
+    });
+
+    return updatedAtm;
   }
 }
 

@@ -186,6 +186,8 @@ export class AccountsService {
         entity_id: id,
         performed_by_user_id: userId,
         details: `Account ${account.account_number} frozen`,
+        old_values: { status: account.status } as any,
+        new_values: { status: 'FROZEN' } as any,
       },
     });
 
@@ -208,6 +210,8 @@ export class AccountsService {
         entity_id: id,
         performed_by_user_id: userId,
         details: `Account ${account.account_number} unfrozen`,
+        old_values: { status: account.status } as any,
+        new_values: { status: 'ACTIVE' } as any,
       },
     });
 
