@@ -8,6 +8,7 @@ import { env } from './config/env';
 import { logger } from './config/logger';
 import { globalLimiter } from './middleware/rateLimiter';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler';
+import { auditLogger } from './middleware/auditLogger';
 
 // Route modules
 import authRoutes from './modules/auth/auth.routes';
@@ -85,6 +86,9 @@ app.get('/health', (_req, res) => {
     uptime: `${Math.floor(process.uptime())}s`,
   });
 });
+
+// ── Audit Logging (runs after auth, before routes) ────────────
+app.use(auditLogger);
 
 // ── API Routes ────────────────────────────────────────────────
 const API_PREFIX = `/api/${env.API_VERSION}`;

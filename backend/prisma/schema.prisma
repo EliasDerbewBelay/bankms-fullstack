@@ -328,6 +328,11 @@ enum dispute_status {
   REJECTED
 }
 
+enum log_status {
+  SUCCESS
+  FAILED
+}
+
 // ─── Models ───────────────────────────────────────────────────
 
 model bank {
@@ -1014,6 +1019,7 @@ model audit_log {
   user_agent           String?
   details              String?
   is_suspicious        Boolean      @default(false)
+  status               log_status   @default(SUCCESS)
   timestamp            DateTime     @default(now()) @db.Timestamptz(6)
   performed_by         online_user? @relation(fields: [performed_by_user_id], references: [user_id], onDelete: SetNull)
 }

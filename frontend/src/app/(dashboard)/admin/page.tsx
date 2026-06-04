@@ -22,7 +22,7 @@ import {
 // ─── Types ───────────────────────────────────────────────────────────────────
 type Tab =
   | 'dashboard' | 'exchange-rates' | 'charge-schedules' | 'users'
-  | 'employees' | 'branches' | 'security' | 'suspicious'
+  | 'employees' | 'branches' | 'security' | 'audit-logs' | 'suspicious'
   | 'account-types' | 'currencies' | 'reports';
 
 const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
@@ -33,6 +33,7 @@ const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: 'employees',        label: 'Employees',          icon: Users },
   { id: 'branches',         label: 'Branches & Depts',   icon: Building2 },
   { id: 'security',         label: 'Security Oversight', icon: Lock },
+  { id: 'audit-logs',       label: 'Audit Logs',         icon: FileText },
   { id: 'suspicious',       label: 'Suspicious Activity',icon: AlertTriangle },
   { id: 'account-types',    label: 'Account Types',      icon: Settings },
   { id: 'currencies',       label: 'Currencies',         icon: Coins },
@@ -748,6 +749,397 @@ function SecurityTab() {
   );
 }
 
+// ─── Audit Logs Tab ───────────────────────────────────────────────────────────
+const ACTION_TYPES = [
+  'LOGIN','LOGOUT','FAILED_LOGIN','CREATE','UPDATE','DELETE',
+  'TRANSACTION','LOAN_APPROVAL','CARD_BLOCK','PASSWORD_CHANGE',
+  'REFUND_APPROVAL','ACCOUNT_FREEZE','EXPORT','CONFIG_CHANGE',
+];
+const ENTITY_TYPES = [
+  'online_user','account','transaction','loan','loan_application',
+  'card','refund','customer','employee','atm','branch','utility_payment',
+];
+
+function JsonViewer({ data, label }: { data: unknown; label: string }) {
+  const [open, setOpen] = useState(false);
+  if (!data) return <span className="text-muted-foreground text-xs">—</span>;
+  return (
+    <div>
+      <button onClick={() => setOpen(o => !o)} className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 font-medium">
+        <Eye className="w-3 h-3" />{open ? 'Hide' : label}
+      </button>
+      {open && (
+        <pre className="mt-2 p-2 rounded bg-muted text-xs overflow-auto max-h-40 max-w-xs border">
+          {JSON.stringify(data, null, 2)}
+        </pre>
+      )}
+    </div>
+  );
+}
+
+function AuditLogsTab() {
+  const [page, setPage]             = useState(1);
+  const [actionType, setActionType] = useState('');
+  const [entityType, setEntityType] = useState('');
+  const [userId, setUserId]         = useState('');
+  const [status, setStatus]         = useState('');
+  const [fromDate, setFromDate]     = useState('');
+  const [toDate, setToDate]         = useState('');
+  const [search, setSearch]         = useState('');
+  const [expandedRow, setExpandedRow] = useState<number | null>(null);
+
+  const queryStr = new URLSearchParams({
+    page: String(page), limit: '20',
+    ...(actionType && { action_type: actionType }),
+    ...(entityType && { entity_type: entityType }),
+    ...(userId     && { user_id: userId }),
+    ...(fromDate   && { from_date: fromDate }),
+    ...(toDate     && { to_date: toDate }),
+  }).toString();
+
+  const { data, isLoading, refetch } = useQuery({
+    queryKey: ['audit-logs-full', queryStr],
+    queryFn: () => api.get(`/admin/audit-logs?${queryStr}`).then(r => r.data.data),
+  });
+
+  const allLogs: any[] = data?.logs ?? [];
+  const meta = data?.meta ?? {};
+
+  // Client-side keyword filter on details + username
+  const logs = search
+    ? allLogs.filter(l =>
+        l.details?.toLowerCase().includes(search.toLowerCase()) ||
+        l.performed_by?.username?.toLowerCase().includes(search.toLowerCase()) ||
+        l.entity_type?.toLowerCase().includes(search.toLowerCase())
+      )
+    : allLogs;
+
+  function reset() {
+    setActionType(''); setEntityType(''); setUserId('');
+    setStatus(''); setFromDate(''); setToDate(''); setSearch(''); setPage(1);
+  }
+
+  function exportCsv() {
+    if (!logs.length) return;
+    const cols = ['log_id','timestamp','action_type','entity_type','entity_id','username','role','status','ip_address','details'];
+    const rows = logs.map((l: any) => [
+      l.log_id,
+      l.timestamp,
+      l.action_type,
+      l.entity_type,
+      l.entity_id ?? '',
+      l.performed_by?.username ?? '',
+      l.performed_by?.role ?? '',
+      l.status ?? '',
+      l.ip_address ?? '',
+      `"${(l.details ?? '').replace(/"/g,'""')}"`,
+    ].join(','));
+    const csv = [cols.join(','), ...rows].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url;
+    a.download = `audit-logs-${new Date().toISOString().slice(0,10)}.csv`;
+    a.click(); URL.revokeObjectURL(url);
+  }
+
+  const actionColors: Record<string, string> = {
+    LOGIN:           'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
+    LOGOUT:          'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300',
+    FAILED_LOGIN:    'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
+    CREATE:          'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+    UPDATE:          'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
+    DELETE:          'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
+    TRANSACTION:     'bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400',
+    LOAN_APPROVAL:   'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400',
+    CARD_BLOCK:      'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400',
+    PASSWORD_CHANGE: 'bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400',
+    REFUND_APPROVAL: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400',
+    ACCOUNT_FREEZE:  'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-400',
+    EXPORT:          'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300',
+    CONFIG_CHANGE:   'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400',
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-base font-semibold">System Audit Logs</h2>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Complete immutable trail of all system events — append-only at database level
+          </p>
+        </div>
+        <button
+          onClick={exportCsv}
+          className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium border rounded-lg hover:bg-muted transition-colors"
+        >
+          <FileText className="w-3.5 h-3.5" /> Export CSV
+        </button>
+      </div>
+
+      {/* Filters */}
+      <Card className="p-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
+          {/* Keyword search */}
+          <div className="relative col-span-2">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+            <input
+              value={search} onChange={e => setSearch(e.target.value)}
+              placeholder="Search details, user…"
+              className="w-full pl-8 pr-3 py-2 text-xs border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-ring"
+            />
+          </div>
+
+          {/* Action type */}
+          <select value={actionType} onChange={e => { setActionType(e.target.value); setPage(1); }}
+            className="text-xs border rounded-lg px-2 py-2 bg-background focus:outline-none focus:ring-2 focus:ring-ring">
+            <option value="">All Actions</option>
+            {ACTION_TYPES.map(a => <option key={a} value={a}>{a.replace(/_/g,' ')}</option>)}
+          </select>
+
+          {/* Entity type */}
+          <select value={entityType} onChange={e => { setEntityType(e.target.value); setPage(1); }}
+            className="text-xs border rounded-lg px-2 py-2 bg-background focus:outline-none focus:ring-2 focus:ring-ring">
+            <option value="">All Entities</option>
+            {ENTITY_TYPES.map(e => <option key={e} value={e}>{e.replace(/_/g,' ')}</option>)}
+          </select>
+
+          {/* Status */}
+          <select value={status} onChange={e => { setStatus(e.target.value); setPage(1); }}
+            className="text-xs border rounded-lg px-2 py-2 bg-background focus:outline-none focus:ring-2 focus:ring-ring">
+            <option value="">All Statuses</option>
+            <option value="SUCCESS">SUCCESS</option>
+            <option value="FAILED">FAILED</option>
+          </select>
+
+          {/* Date from */}
+          <input type="date" value={fromDate} onChange={e => { setFromDate(e.target.value); setPage(1); }}
+            className="text-xs border rounded-lg px-2 py-2 bg-background focus:outline-none focus:ring-2 focus:ring-ring" />
+
+          {/* Date to */}
+          <div className="flex gap-2">
+            <input type="date" value={toDate} onChange={e => { setToDate(e.target.value); setPage(1); }}
+              className="flex-1 text-xs border rounded-lg px-2 py-2 bg-background focus:outline-none focus:ring-2 focus:ring-ring" />
+            <button onClick={reset} title="Clear filters"
+              className="p-2 rounded-lg border hover:bg-muted transition-colors">
+              <XCircle className="w-3.5 h-3.5 text-muted-foreground" />
+            </button>
+            <button onClick={() => refetch()}
+              className="p-2 rounded-lg border hover:bg-muted transition-colors">
+              <RefreshCw className="w-3.5 h-3.5 text-muted-foreground" />
+            </button>
+          </div>
+        </div>
+      </Card>
+
+      {/* Stats strip */}
+      {!isLoading && meta.total_items !== undefined && (
+        <div className="flex items-center gap-4 text-xs text-muted-foreground px-1">
+          <span className="font-medium text-foreground">{meta.total_items.toLocaleString()}</span> total entries
+          <span>·</span>
+          <span>Page {meta.current_page ?? 1} of {meta.total_pages ?? 1}</span>
+          {(actionType || entityType || fromDate || toDate || search || status) && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 font-medium">
+              Filters active
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* Table */}
+      <Card>
+        {isLoading ? (
+          <div className="flex justify-center py-12">
+            <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b bg-muted/40">
+                  {['#','Timestamp','Action','Entity','ID','User','Status','IP Address','Details','Values'].map(h => (
+                    <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap">
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {logs.map((l: any) => (
+                  <>
+                    <tr
+                      key={l.log_id}
+                      onClick={() => setExpandedRow(expandedRow === l.log_id ? null : l.log_id)}
+                      className={`cursor-pointer transition-colors hover:bg-muted/30 ${l.is_suspicious ? 'bg-red-50/40 dark:bg-red-900/10' : ''}`}
+                    >
+                      {/* ID */}
+                      <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{l.log_id}</td>
+
+                      {/* Timestamp */}
+                      <td className="px-4 py-3 text-xs whitespace-nowrap">
+                        {new Date(l.timestamp).toLocaleString('en-ET', { dateStyle: 'short', timeStyle: 'medium' })}
+                      </td>
+
+                      {/* Action */}
+                      <td className="px-4 py-3">
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${actionColors[l.action_type] ?? 'bg-muted text-muted-foreground'}`}>
+                          {l.is_suspicious && <AlertTriangle className="w-3 h-3" />}
+                          {l.action_type?.replace(/_/g,' ')}
+                        </span>
+                      </td>
+
+                      {/* Entity */}
+                      <td className="px-4 py-3 text-xs">
+                        <span className="font-mono bg-muted px-1.5 py-0.5 rounded text-muted-foreground">
+                          {l.entity_type}
+                        </span>
+                      </td>
+
+                      {/* Entity ID */}
+                      <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
+                        {l.entity_id ?? '—'}
+                      </td>
+
+                      {/* User */}
+                      <td className="px-4 py-3 text-xs min-w-[120px]">
+                        {l.performed_by ? (
+                          <div>
+                            <p className="font-medium text-foreground">{l.performed_by.username}</p>
+                            <StatusBadge status={l.performed_by.role} />
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground">System</span>
+                        )}
+                      </td>
+
+                      {/* Status */}
+                      <td className="px-4 py-3">
+                        {l.status === 'FAILED' ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
+                            <XCircle className="w-3 h-3" /> FAILED
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
+                            <CheckCircle2 className="w-3 h-3" /> SUCCESS
+                          </span>
+                        )}
+                      </td>
+
+                      {/* IP */}
+                      <td className="px-4 py-3 font-mono text-xs text-muted-foreground whitespace-nowrap">
+                        {l.ip_address ?? '—'}
+                      </td>
+
+                      {/* Details */}
+                      <td className="px-4 py-3 text-xs text-muted-foreground max-w-[220px] truncate">
+                        {l.details ?? '—'}
+                      </td>
+
+                      {/* Values toggle */}
+                      <td className="px-4 py-3 text-xs">
+                        {(l.old_values || l.new_values) ? (
+                          <button className="text-blue-600 hover:text-blue-800 flex items-center gap-1">
+                            {expandedRow === l.log_id ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                            <span className="text-xs">{expandedRow === l.log_id ? 'Hide' : 'View'}</span>
+                          </button>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </td>
+                    </tr>
+
+                    {/* Expanded row — JSON diff viewer */}
+                    {expandedRow === l.log_id && (l.old_values || l.new_values) && (
+                      <tr key={`${l.log_id}-expand`} className="bg-muted/20 border-b">
+                        <td colSpan={10} className="px-6 py-4">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {l.old_values && (
+                              <div>
+                                <p className="text-xs font-semibold text-muted-foreground mb-2 flex items-center gap-1">
+                                  <span className="w-2 h-2 rounded-full bg-red-400 inline-block" />
+                                  BEFORE
+                                </p>
+                                <pre className="p-3 rounded-lg bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800 text-xs overflow-auto max-h-48">
+                                  {JSON.stringify(l.old_values, null, 2)}
+                                </pre>
+                              </div>
+                            )}
+                            {l.new_values && (
+                              <div>
+                                <p className="text-xs font-semibold text-muted-foreground mb-2 flex items-center gap-1">
+                                  <span className="w-2 h-2 rounded-full bg-emerald-400 inline-block" />
+                                  AFTER
+                                </p>
+                                <pre className="p-3 rounded-lg bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-200 dark:border-emerald-800 text-xs overflow-auto max-h-48">
+                                  {JSON.stringify(l.new_values, null, 2)}
+                                </pre>
+                              </div>
+                            )}
+                          </div>
+                          {l.user_agent && (
+                            <p className="mt-3 text-xs text-muted-foreground">
+                              <span className="font-medium">User-Agent:</span> {l.user_agent}
+                            </p>
+                          )}
+                        </td>
+                      </tr>
+                    )}
+                  </>
+                ))}
+                {logs.length === 0 && (
+                  <tr>
+                    <td colSpan={10} className="px-4 py-12 text-center text-muted-foreground text-sm">
+                      No audit log entries match the current filters
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* Pagination */}
+        {!isLoading && meta.total_pages > 1 && (
+          <div className="px-6 py-3 border-t flex items-center justify-between">
+            <p className="text-xs text-muted-foreground">
+              Page {meta.current_page} of {meta.total_pages} · {meta.total_items?.toLocaleString()} entries
+            </p>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setPage(1)} disabled={page === 1}
+                className="px-2 py-1.5 text-xs border rounded-lg hover:bg-muted disabled:opacity-40"
+              >First</button>
+              <button
+                onClick={() => setPage(p => p - 1)} disabled={page === 1}
+                className="px-3 py-1.5 text-xs border rounded-lg hover:bg-muted disabled:opacity-40"
+              >Prev</button>
+              {/* Page number pills */}
+              {Array.from({ length: Math.min(5, meta.total_pages ?? 1) }, (_, i) => {
+                const pageNum = Math.max(1, page - 2) + i;
+                if (pageNum > meta.total_pages) return null;
+                return (
+                  <button key={pageNum} onClick={() => setPage(pageNum)}
+                    className={`w-8 h-7 text-xs rounded-lg border ${pageNum === page ? 'bg-primary text-primary-foreground border-primary' : 'hover:bg-muted'}`}>
+                    {pageNum}
+                  </button>
+                );
+              })}
+              <button
+                onClick={() => setPage(p => p + 1)} disabled={page >= (meta.total_pages ?? 1)}
+                className="px-3 py-1.5 text-xs border rounded-lg hover:bg-muted disabled:opacity-40"
+              >Next</button>
+              <button
+                onClick={() => setPage(meta.total_pages)} disabled={page >= (meta.total_pages ?? 1)}
+                className="px-2 py-1.5 text-xs border rounded-lg hover:bg-muted disabled:opacity-40"
+              >Last</button>
+            </div>
+          </div>
+        )}
+      </Card>
+    </div>
+  );
+}
+
 // ─── Suspicious Activity Tab ──────────────────────────────────────────────────
 function SuspiciousTab() {
   const [page, setPage] = useState(1);
@@ -1289,6 +1681,7 @@ export default function AdminPage() {
         {activeTab === 'employees'        && <EmployeesTab />}
         {activeTab === 'branches'         && <BranchesTab />}
         {activeTab === 'security'         && <SecurityTab />}
+        {activeTab === 'audit-logs'       && <AuditLogsTab />}
         {activeTab === 'suspicious'       && <SuspiciousTab />}
         {activeTab === 'account-types'    && <AccountTypesTab />}
         {activeTab === 'currencies'       && <CurrenciesTab />}
