@@ -2,6 +2,7 @@ import { prisma } from '../../config/database';
 import { ApiError } from '../../utils/ApiError';
 import { getPagination, buildMeta } from '../../utils/pagination';
 import { generateTransactionRef } from '../../utils/referenceNumber';
+import { requireVerifiedKyc } from '../../utils/kycGuard';
 import { Request } from 'express';
 import { Prisma } from '@prisma/client';
 
@@ -256,7 +257,8 @@ export class TransactionsService {
     description?: string;
     channel?: string;
     requesting_customer_id?: number | null;
-  }) {
+  }, user?: any) {
+    if (user) await requireVerifiedKyc(user);
     if (data.from_account_id === data.to_account_id)
       throw ApiError.badRequest('Cannot transfer to the same account');
 
@@ -323,7 +325,8 @@ export class TransactionsService {
     amount: number;
     description?: string;
     requesting_customer_id?: number | null;
-  }) {
+  }, user?: any) {
+    if (user) await requireVerifiedKyc(user);
     const from = await prisma.account.findUnique({
       where: { account_id: data.from_account_id },
       include: { account_type: true, customer_account: true },
@@ -384,6 +387,145 @@ export class TransactionsService {
       });
 
       return transaction;
+    });
+  }
+
+  async getCustomerActivity(customerId: number) {
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    // Get all account IDs
+    const customerAccounts = await prisma.customer_account.findMany({
+      where: { customer_id: customerId },
+      select: { account_id: true },
+    });
+    const accountIds = customerAccounts.map((ca: any) => ca.account_id);
+
+    const [trend, byType, recent] = await Promise.all([
+      prisma.$queryRaw<Array<{ date: string; count: bigint; volume: number }>>`
+        SELECT
+          DATE(transaction_date) as date,
+          COUNT(*)::bigint as count,
+          COALESCE(SUM(CASE WHEN status = 'COMPLETED' THEN amount ELSE 0 END), 0) as volume
+        FROM "transaction"
+        WHERE account_id = ANY(${accountIds}::int[])
+          AND transaction_date >= ${thirtyDaysAgo}
+        GROUP BY DATE(transaction_date)
+        ORDER BY date ASC
+      `,
+      prisma.transaction.groupBy({
+        by: ['transaction_type'],
+        _count: { transaction_id: true },
+        _sum: { amount: true },
+        where: { account_id: { in: accountIds }, status: 'COMPLETED' },
+        orderBy: { _count: { transaction_id: 'desc' } },
+      }),
+      prisma.transaction.findMany({
+        where: { account_id: { in: accountIds } },
+        take: 10,
+        orderBy: { transaction_date: 'desc' },
+        select: {
+          transaction_id: true,
+          reference_number: true,
+          transaction_type: true,
+          amount: true,
+          status: true,
+          transaction_date: true,
+          description: true,
+          from_account: { select: { account_number: true } },
+          currency: { select: { currency_code: true, symbol: true } },
+        },
+      }),
+    ]);
+
+    return {
+      trend: trend.map((d) => ({ date: String(d.date), count: Number(d.count), volume: Number(d.volume) })),
+      byType: byType.map((t) => ({ type: t.transaction_type, count: t._count.transaction_id, volume: Number(t._sum.amount ?? 0) })),
+      recentTransactions: recent,
+    };
+  }
+
+  async listBanks() {
+    return prisma.bank.findMany({
+      orderBy: { bank_name: 'asc' },
+      select: {
+        bank_id: true,
+        bank_name: true,
+        bank_code: true,
+        swift_code: true,
+        city: true,
+        country: true,
+      },
+    });
+  }
+
+  async directInterbankTransfer(data: {
+    from_account_id: number;
+    to_bank_code: string;
+    to_account_number: string;
+    to_account_name: string;
+    amount: number;
+    description?: string;
+    requesting_customer_id?: number | null;
+  }, user?: any) {
+    if (user) await requireVerifiedKyc(user);
+
+    const from = await prisma.account.findUnique({
+      where: { account_id: data.from_account_id },
+      include: { account_type: true, customer_account: true },
+    });
+    if (!from) throw ApiError.notFound('Source account not found');
+
+    // Ownership check for customers
+    if (data.requesting_customer_id) {
+      const ownsAccount = from.customer_account.some(
+        (ca) => ca.customer_id === data.requesting_customer_id
+      );
+      if (!ownsAccount) throw ApiError.forbidden('You do not own the source account');
+    }
+
+    // Verify the destination bank exists
+    const destBank = await prisma.bank.findUnique({ where: { bank_code: data.to_bank_code } });
+    if (!destBank) throw ApiError.badRequest('Destination bank not found');
+
+    if (from.status !== 'ACTIVE') throw ApiError.badRequest('Source account is not active');
+
+    if (Number(from.available_balance) < data.amount) {
+      throw ApiError.badRequest('Insufficient available balance');
+    }
+
+    const minBalance = Number(from.account_type.minimum_balance);
+    if (Number(from.balance) - data.amount < minBalance) {
+      throw ApiError.badRequest(`Transfer would breach minimum balance of ${minBalance}`);
+    }
+
+    return prisma.$transaction(async (tx) => {
+      const transaction = await tx.transaction.create({
+        data: {
+          reference_number: generateTransactionRef(),
+          transaction_type: 'INTERBANK_TRANSFER',
+          channel: 'INTERNET',
+          amount: data.amount,
+          currency_id: from.currency_id,
+          account_id: data.from_account_id,
+          to_bank_code: data.to_bank_code,
+          to_iban: data.to_account_number,
+          to_account_name: data.to_account_name,
+          description: data.description ?? `Interbank transfer to ${data.to_account_name} at ${destBank.bank_name}`,
+          status: 'COMPLETED',
+          value_date: new Date(),
+        },
+      });
+
+      await tx.account.update({
+        where: { account_id: data.from_account_id },
+        data: {
+          balance: { decrement: data.amount },
+          available_balance: { decrement: data.amount },
+        },
+      });
+
+      return { ...transaction, destination_bank: destBank.bank_name };
     });
   }
 

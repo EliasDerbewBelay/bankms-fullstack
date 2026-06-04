@@ -2,6 +2,7 @@ import { prisma } from '../../config/database';
 import { ApiError } from '../../utils/ApiError';
 import { getPagination, buildMeta } from '../../utils/pagination';
 import { generateLoanNumber, generateApplicationNumber } from '../../utils/referenceNumber';
+import { requireVerifiedKyc } from '../../utils/kycGuard';
 import { Request } from 'express';
 import { Prisma } from '@prisma/client';
 
@@ -83,10 +84,11 @@ export class LoansService {
     requested_term_months: number;
     purpose: string;
     requesting_customer_id?: number | null;
-  }) {
+  }, user?: any) {
     if (data.requesting_customer_id && data.customer_id !== data.requesting_customer_id) {
       throw ApiError.forbidden('You can only apply for a loan for yourself');
     }
+    if (user) await requireVerifiedKyc(user);
 
     return prisma.loan_application.create({
       data: {

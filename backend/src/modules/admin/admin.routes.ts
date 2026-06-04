@@ -7,7 +7,7 @@ import { authenticate } from '../../middleware/authenticate';
 import { authorize, authorizeExact } from '../../middleware/authorize';
 
 const router = Router();
-router.use(authenticate, authorize('BRANCH_MANAGER'));
+router.use(authenticate, authorize('SUPERVISOR'));
 
 router.get('/dashboard', getDashboard);
 router.get('/audit-logs', authorizeExact('ADMIN'), getAuditLogs);

@@ -24,6 +24,7 @@ import notificationsRoutes from './modules/notifications/notifications.routes';
 import settingsRoutes from './modules/settings/settings.routes';
 import beneficiariesRoutes from './modules/beneficiaries/beneficiaries.routes';
 import utilityPaymentsRoutes from './modules/utility-payments/utility-payments.routes';
+import refundsRoutes from './modules/refunds/refunds.routes';
 
 const app: Application = express();
 
@@ -100,6 +101,7 @@ app.use(`${API_PREFIX}/notifications`, notificationsRoutes);
 app.use(`${API_PREFIX}/settings`, settingsRoutes);
 app.use(`${API_PREFIX}/beneficiaries`, beneficiariesRoutes);
 app.use(`${API_PREFIX}/utility-payments`, utilityPaymentsRoutes);
+app.use(`${API_PREFIX}/refunds`, refundsRoutes);
 app.use(`${API_PREFIX}/teller-drawers`, tellerDrawersRoutes);
 
 // ── 404 handler ───────────────────────────────────────────────

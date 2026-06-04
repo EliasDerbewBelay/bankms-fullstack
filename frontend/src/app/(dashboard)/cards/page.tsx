@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../../lib/api';
 import { formatCurrency, formatDate, getStatusBadge, cn } from '../../../lib/utils';
-import { CreditCard, Plus, ShieldOff, Settings2, Snowflake } from 'lucide-react';
+import { CreditCard, Plus, ShieldOff, Settings2, Snowflake, Flame } from 'lucide-react';
 import { Modal } from '../../../components/ui/modal';
 import { ConfirmDialog } from '../../../components/ui/confirm-dialog';
 import { useToast } from '../../../components/ui/toaster';
@@ -71,6 +71,12 @@ export default function CardsPage() {
     mutationFn: (id: number) => api.patch(`/cards/${id}/freeze`),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['cards'] }); setFreezeTarget(null); toast.success('Card frozen successfully'); },
     onError: (e: any) => toast.error(e?.response?.data?.message ?? 'Failed to freeze card'),
+  });
+
+  const unfreezeMutation = useMutation({
+    mutationFn: (id: number) => api.patch(`/cards/${id}/unfreeze`),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['cards'] }); toast.success('Card unfrozen successfully'); },
+    onError: (e: any) => toast.error(e?.response?.data?.message ?? 'Failed to unfreeze card'),
   });
 
   const cards = data ?? [];
@@ -152,10 +158,22 @@ export default function CardsPage() {
                       <span className="font-financial font-medium text-foreground tabular-nums">{formatCurrency(Number(card.monthly_limit))}</span>
                     </div>
                     <div className="flex flex-wrap gap-2 pt-1 border-t border-border">
-                      {/* Customer freeze */}
+                      {/* Customer: freeze active cards */}
                       {isCustomer && card.status === 'ACTIVE' && (
                         <button onClick={() => setFreezeTarget(card)} className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-md bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 transition-colors">
                           <Snowflake className="w-3.5 h-3.5" /> Freeze
+                        </button>
+                      )}
+                      {/* Customer: unfreeze frozen cards */}
+                      {isCustomer && card.status === 'FROZEN' && (
+                        <button onClick={() => unfreezeMutation.mutate(card.card_id)} disabled={unfreezeMutation.isPending} className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-md bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 transition-colors disabled:opacity-50">
+                          <Flame className="w-3.5 h-3.5" /> Unfreeze
+                        </button>
+                      )}
+                      {/* Customer: block active/frozen cards permanently */}
+                      {isCustomer && (card.status === 'ACTIVE' || card.status === 'FROZEN') && (
+                        <button onClick={() => setBlockTarget(card)} className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-md bg-red-500/10 text-red-600 hover:bg-red-500/20 transition-colors">
+                          <ShieldOff className="w-3.5 h-3.5" /> Block
                         </button>
                       )}
                       {/* Supervisor+ block & limits */}

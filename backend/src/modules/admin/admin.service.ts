@@ -49,9 +49,9 @@ export class AdminService {
 
     const defaultedLoans = await prisma.loan.count({ where: { status: 'DEFAULTED' } });
 
-    // Transaction trend last 7 days
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    // Transaction trend last 30 days
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
     const trendData = await prisma.$queryRaw<Array<{ date: string; count: bigint; volume: number }>>`
       SELECT 
@@ -59,10 +59,44 @@ export class AdminService {
         COUNT(*)::bigint as count,
         COALESCE(SUM(CASE WHEN status = 'COMPLETED' THEN amount ELSE 0 END), 0) as volume
       FROM "transaction"
-      WHERE transaction_date >= ${sevenDaysAgo}
+      WHERE transaction_date >= ${thirtyDaysAgo}
       GROUP BY DATE(transaction_date)
       ORDER BY date ASC
     `;
+
+    // Transaction type breakdown
+    const byType = await prisma.transaction.groupBy({
+      by: ['transaction_type'],
+      _count: { transaction_id: true },
+      _sum: { amount: true },
+      where: { status: 'COMPLETED' },
+      orderBy: { _count: { transaction_id: 'desc' } },
+    });
+
+    // Channel breakdown
+    const byChannel = await prisma.transaction.groupBy({
+      by: ['channel'],
+      _count: { transaction_id: true },
+      where: { status: 'COMPLETED' },
+      orderBy: { _count: { transaction_id: 'desc' } },
+    });
+
+    // Recent transactions (last 10)
+    const recentTransactions = await prisma.transaction.findMany({
+      take: 10,
+      orderBy: { transaction_date: 'desc' },
+      select: {
+        transaction_id: true,
+        reference_number: true,
+        transaction_type: true,
+        channel: true,
+        amount: true,
+        status: true,
+        transaction_date: true,
+        from_account: { select: { account_number: true } },
+        currency: { select: { currency_code: true, symbol: true } },
+      },
+    });
 
     return {
       customers: {
@@ -98,6 +132,16 @@ export class AdminService {
         count: Number(d.count),
         volume: Number(d.volume),
       })),
+      byType: byType.map((t) => ({
+        type: t.transaction_type,
+        count: t._count.transaction_id,
+        volume: Number(t._sum.amount ?? 0),
+      })),
+      byChannel: byChannel.map((c) => ({
+        channel: c.channel,
+        count: c._count.transaction_id,
+      })),
+      recentTransactions,
     };
   }
 

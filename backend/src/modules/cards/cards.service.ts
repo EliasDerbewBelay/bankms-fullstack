@@ -124,6 +124,72 @@ export class CardsService {
     return safeCard;
   }
 
+  async freezeCard(cardId: number, user: any) {
+    const card = await prisma.card.findUnique({ where: { card_id: cardId } });
+    if (!card) throw new ApiError('Card not found', 404);
+    if (card.status !== 'ACTIVE') throw new ApiError('Only ACTIVE cards can be frozen', 400);
+
+    if (user.role === 'CUSTOMER') {
+      const ca = await prisma.customer_account.findFirst({
+        where: { customer_id: user.linkedCustomerId, account_id: card.account_id },
+      });
+      if (!ca) throw new ApiError('You do not have permission to freeze this card', 403);
+    }
+
+    const updated = await prisma.card.update({
+      where: { card_id: cardId },
+      data: { status: 'FROZEN' },
+    });
+
+    await prisma.audit_log.create({
+      data: {
+        action_type: 'UPDATE',
+        entity_type: 'card',
+        entity_id: cardId,
+        performed_by_user_id: user.userId,
+        details: 'Card frozen by user',
+        old_values: { status: 'ACTIVE' } as any,
+        new_values: { status: 'FROZEN' } as any,
+      },
+    });
+
+    const { cvv_hash, pin_hash, ...safe } = updated;
+    return safe;
+  }
+
+  async unfreezeCard(cardId: number, user: any) {
+    const card = await prisma.card.findUnique({ where: { card_id: cardId } });
+    if (!card) throw new ApiError('Card not found', 404);
+    if (card.status !== 'FROZEN') throw new ApiError('Only FROZEN cards can be unfrozen', 400);
+
+    if (user.role === 'CUSTOMER') {
+      const ca = await prisma.customer_account.findFirst({
+        where: { customer_id: user.linkedCustomerId, account_id: card.account_id },
+      });
+      if (!ca) throw new ApiError('You do not have permission to unfreeze this card', 403);
+    }
+
+    const updated = await prisma.card.update({
+      where: { card_id: cardId },
+      data: { status: 'ACTIVE' },
+    });
+
+    await prisma.audit_log.create({
+      data: {
+        action_type: 'UPDATE',
+        entity_type: 'card',
+        entity_id: cardId,
+        performed_by_user_id: user.userId,
+        details: 'Card unfrozen by user',
+        old_values: { status: 'FROZEN' } as any,
+        new_values: { status: 'ACTIVE' } as any,
+      },
+    });
+
+    const { cvv_hash, pin_hash, ...safe } = updated;
+    return safe;
+  }
+
   async updateLimits(cardId: number, dailyLimit: number, monthlyLimit: number, user: any) {
     const card = await prisma.card.findUnique({ where: { card_id: cardId } });
     if (!card) throw new ApiError('Card not found', 404);

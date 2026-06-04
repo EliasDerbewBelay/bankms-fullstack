@@ -7,7 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { api } from '../../../lib/api';
 import { formatDate } from '../../../lib/utils';
-import { Settings, Lock, Monitor, User, ChevronRight, CheckCircle2, AlertCircle, Eye, EyeOff, LogOut, Palette } from 'lucide-react';
+import { Settings, Lock, Monitor, User, ChevronRight, CheckCircle2, AlertCircle, Eye, EyeOff, LogOut, Palette, ShieldCheck, ShieldOff, QrCode } from 'lucide-react';
 import { useAuthStore } from '../../../store/auth.store';
 import { cn } from '../../../lib/utils';
 import { ThemeToggle } from '../../../components/ui/theme-toggle';
@@ -31,6 +31,12 @@ export default function SettingsPage() {
   const [showNew, setShowNew] = useState(false);
   const [pwSuccess, setPwSuccess] = useState('');
   const [pwError, setPwError] = useState('');
+  const [totpStep, setTotpStep] = useState<'idle' | 'scan' | 'verify' | 'disable'>('idle');
+  const [totpQR, setTotpQR] = useState('');
+  const [totpSecret, setTotpSecret] = useState('');
+  const [totpToken, setTotpToken] = useState('');
+  const [totpDisablePass, setTotpDisablePass] = useState('');
+  const [totpMsg, setTotpMsg] = useState('');
   const { user } = useAuthStore();
   const queryClient = useQueryClient();
 
@@ -62,6 +68,39 @@ export default function SettingsPage() {
       setPwError(e?.response?.data?.message ?? 'Failed to change password');
       setPwSuccess('');
     },
+  });
+
+  const setup2FAMutation = useMutation({
+    mutationFn: () => api.post('/settings/2fa/setup'),
+    onSuccess: (res) => {
+      setTotpQR(res.data.data.qrCodeDataUrl);
+      setTotpSecret(res.data.data.secret);
+      setTotpStep('scan');
+      setTotpMsg('');
+    },
+    onError: (e: any) => setTotpMsg(e?.response?.data?.message ?? 'Setup failed'),
+  });
+
+  const verify2FAMutation = useMutation({
+    mutationFn: (token: string) => api.post('/settings/2fa/verify', { token }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['settings-profile'] });
+      setTotpStep('idle');
+      setTotpToken('');
+      setTotpMsg('Two-factor authentication enabled!');
+    },
+    onError: (e: any) => setTotpMsg(e?.response?.data?.message ?? 'Invalid code'),
+  });
+
+  const disable2FAMutation = useMutation({
+    mutationFn: (password: string) => api.delete('/settings/2fa', { data: { password } }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['settings-profile'] });
+      setTotpStep('idle');
+      setTotpDisablePass('');
+      setTotpMsg('Two-factor authentication disabled.');
+    },
+    onError: (e: any) => setTotpMsg(e?.response?.data?.message ?? 'Incorrect password'),
   });
 
   const revokeMutation = useMutation({
@@ -181,7 +220,7 @@ export default function SettingsPage() {
 
           {/* SECURITY TAB */}
           {tab === 'security' && (
-            <div className="p-6">
+            <div className="p-6 space-y-10">
               <h3 className="text-sm font-semibold mb-5">Change Password</h3>
               <form onSubmit={handleSubmit(d => pwMutation.mutate(d))} className="space-y-4 max-w-md">
                 {pwSuccess && (
@@ -225,6 +264,86 @@ export default function SettingsPage() {
                   {pwMutation.isPending ? 'Changing…' : 'Change Password'}
                 </button>
               </form>
+
+              {/* Two-Factor Authentication */}
+              <div>
+                <h3 className="text-sm font-semibold mb-1">Two-Factor Authentication (TOTP)</h3>
+                <p className="text-xs text-muted-foreground mb-5">Use an authenticator app like Google Authenticator or Microsoft Authenticator for an extra layer of security.</p>
+
+                {totpMsg && (
+                  <div className={cn('flex items-center gap-2 rounded-lg px-4 py-3 text-sm mb-4 border', totpMsg.includes('enabled!') ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800/50 text-emerald-700 dark:text-emerald-400' : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800/50 text-red-700 dark:text-red-400')}>
+                    {totpMsg.includes('enabled!') ? <CheckCircle2 className="w-4 h-4 flex-shrink-0" /> : <AlertCircle className="w-4 h-4 flex-shrink-0" />}
+                    {totpMsg}
+                  </div>
+                )}
+
+                {/* Status + action */}
+                {totpStep === 'idle' && (
+                  <div className="flex items-center justify-between rounded-xl border border-border p-4 bg-muted/30 max-w-md">
+                    <div className="flex items-center gap-3">
+                      {profile?.two_factor_enabled
+                        ? <ShieldCheck className="w-8 h-8 text-emerald-500" />
+                        : <ShieldOff className="w-8 h-8 text-muted-foreground/50" />
+                      }
+                      <div>
+                        <p className="text-sm font-medium">{profile?.two_factor_enabled ? '2FA is ON' : '2FA is OFF'}</p>
+                        <p className="text-xs text-muted-foreground">{profile?.two_factor_enabled ? 'Your account is protected.' : 'Your account is not using 2FA.'}</p>
+                      </div>
+                    </div>
+                    {profile?.two_factor_enabled
+                      ? <button onClick={() => { setTotpStep('disable'); setTotpMsg(''); }}
+                          className="px-3 py-1.5 text-xs font-medium rounded-md bg-red-500/10 text-red-600 hover:bg-red-500/20 transition-colors">
+                          Disable
+                        </button>
+                      : <button onClick={() => { setup2FAMutation.mutate(); setTotpMsg(''); }}
+                          disabled={setup2FAMutation.isPending}
+                          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md bg-primary/10 text-primary hover:bg-primary/20 transition-colors disabled:opacity-50">
+                          <QrCode className="w-3.5 h-3.5" /> {setup2FAMutation.isPending ? 'Generating…' : 'Enable 2FA'}
+                        </button>
+                    }
+                  </div>
+                )}
+
+                {/* QR Code scan step */}
+                {totpStep === 'scan' && (
+                  <div className="max-w-md space-y-4">
+                    <p className="text-sm text-muted-foreground">1. Scan the QR code with your authenticator app, or enter the secret manually.</p>
+                    {totpQR && <img src={totpQR} alt="2FA QR Code" className="w-48 h-48 rounded-xl border border-border" />}
+                    <div className="rounded-lg border border-border bg-muted/30 px-3 py-2">
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Manual entry secret</p>
+                      <p className="font-mono text-xs text-foreground break-all">{totpSecret}</p>
+                    </div>
+                    <p className="text-sm text-muted-foreground">2. Enter the 6-digit code from your app to confirm.</p>
+                    <input value={totpToken} onChange={e => setTotpToken(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                      placeholder="000000" maxLength={6}
+                      className="w-40 rounded-lg border border-input bg-background px-3 py-2 text-sm font-mono text-center focus:outline-none focus:ring-2 focus:ring-ring tracking-[0.4em]" />
+                    <div className="flex gap-3">
+                      <button onClick={() => setTotpStep('idle')} className="px-4 py-2 text-sm text-muted-foreground hover:text-foreground border border-border rounded-lg hover:bg-accent transition-colors">Cancel</button>
+                      <button onClick={() => verify2FAMutation.mutate(totpToken)} disabled={totpToken.length !== 6 || verify2FAMutation.isPending}
+                        className="px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50">
+                        {verify2FAMutation.isPending ? 'Verifying…' : 'Verify & Enable'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Disable step */}
+                {totpStep === 'disable' && (
+                  <div className="max-w-md space-y-4">
+                    <p className="text-sm text-muted-foreground">Enter your password to confirm disabling two-factor authentication.</p>
+                    <input type="password" value={totpDisablePass} onChange={e => setTotpDisablePass(e.target.value)}
+                      placeholder="Your password"
+                      className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
+                    <div className="flex gap-3">
+                      <button onClick={() => setTotpStep('idle')} className="px-4 py-2 text-sm text-muted-foreground hover:text-foreground border border-border rounded-lg hover:bg-accent transition-colors">Cancel</button>
+                      <button onClick={() => disable2FAMutation.mutate(totpDisablePass)} disabled={!totpDisablePass || disable2FAMutation.isPending}
+                        className="px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50">
+                        {disable2FAMutation.isPending ? 'Disabling…' : 'Disable 2FA'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           )}
 

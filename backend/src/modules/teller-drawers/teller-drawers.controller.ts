@@ -10,6 +10,11 @@ export const getDrawer = asyncHandler(async (req: Request, res: Response) => {
   return ApiResponse.success(res, drawer);
 });
 
+export const getTellerDashboard = asyncHandler(async (req: Request, res: Response) => {
+  const dashboard = await service.getDashboard(parseInt(req.params.employeeId as string));
+  return ApiResponse.success(res, dashboard, 'Teller dashboard loaded');
+});
+
 export const openDrawer = asyncHandler(async (req: Request, res: Response) => {
   const drawer = await service.openDrawer(req.body);
   return ApiResponse.created(res, drawer, 'Teller drawer opened');

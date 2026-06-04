@@ -38,7 +38,7 @@ export const submitApplication = asyncHandler(async (req: Request, res: Response
   const app = await service.submitApplication({
     ...req.body,
     requesting_customer_id: req.user!.role === 'CUSTOMER' ? req.user!.linkedCustomerId : null,
-  });
+  }, req.user!);
   return ApiResponse.created(res, app, 'Loan application submitted');
 });
 

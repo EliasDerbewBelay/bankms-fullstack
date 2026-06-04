@@ -6,8 +6,8 @@ import { authorize } from '../../middleware/authorize';
 const router = Router();
 router.use(authenticate);
 
-router.get('/', authorize('SUPERVISOR', 'BRANCH_MANAGER', 'ADMIN'), getAllAtms);
-router.get('/stats', authorize('SUPERVISOR', 'BRANCH_MANAGER', 'ADMIN'), getAtmStats);
+router.get('/', authorize('TELLER'), getAllAtms);
+router.get('/stats', authorize('TELLER'), getAtmStats);
 router.patch('/:id/refill', authorize('BRANCH_MANAGER', 'ADMIN'), refillAtm);
 router.patch('/:id/status', authorize('ADMIN'), updateStatus);
 

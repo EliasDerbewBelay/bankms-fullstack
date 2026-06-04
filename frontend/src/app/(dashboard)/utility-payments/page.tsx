@@ -4,10 +4,11 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../../lib/api';
 import { formatCurrency, formatDate, getStatusBadge } from '../../../lib/utils';
-import { Zap, Droplets, Phone, Wifi, Receipt, Shield, GraduationCap, FileText, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Zap, Droplets, Phone, Wifi, Receipt, Shield, GraduationCap, FileText, Plus, ChevronLeft, ChevronRight, RotateCcw } from 'lucide-react';
 import { Modal } from '../../../components/ui/modal';
 import { useToast } from '../../../components/ui/toaster';
 import { useAuthStore } from '../../../store/auth.store';
+import { ConfirmDialog } from '../../../components/ui/confirm-dialog';
 
 const UTILITY_TYPES = ['ELECTRICITY', 'WATER', 'TELECOM', 'INTERNET', 'TAX', 'INSURANCE', 'SCHOOL_FEE', 'OTHER'];
 
@@ -48,6 +49,7 @@ export default function UtilityPaymentsPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [step, setStep] = useState(1);
   const [form, setForm] = useState(emptyForm);
+  const [refundTarget, setRefundTarget] = useState<any>(null);
 
   const endpoint = isCustomer ? '/utility-payments/my' : '/utility-payments';
   const { data, isLoading } = useQuery({
@@ -64,6 +66,12 @@ export default function UtilityPaymentsPage() {
     queryKey: ['my-accounts-util'],
     queryFn: async () => { const r = await api.get('/accounts/my'); return r.data.data; },
     enabled: modalOpen,
+  });
+
+  const refundMutation = useMutation({
+    mutationFn: (p: any) => api.post('/refunds', p),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['utility-payments'] }); setRefundTarget(null); toast.success('Refund request submitted', 'Pending supervisor approval'); },
+    onError: (e: any) => toast.error(e?.response?.data?.message ?? 'Refund request failed'),
   });
 
   const payMutation = useMutation({
@@ -134,8 +142,8 @@ export default function UtilityPaymentsPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border bg-muted/40">
-                {['Reference', 'Type', 'Provider', 'Subscriber', 'Amount', 'Status', 'Date'].map(h => (
-                  <th key={h} className="text-left px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider whitespace-nowrap">{h}</th>
+                {['Reference', 'Type', 'Provider', 'Subscriber', 'Amount', 'Status', 'Date', ...(isCustomer ? [''] : [])].map((h, i) => (
+                  <th key={i} className="text-left px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider whitespace-nowrap">{h}</th>
                 ))}
               </tr>
             </thead>
@@ -153,6 +161,16 @@ export default function UtilityPaymentsPage() {
                       <td className="px-4 py-3 font-financial font-semibold whitespace-nowrap">{formatCurrency(Number(p.amount))}</td>
                       <td className="px-4 py-3"><span className={getStatusBadge(p.status)}>{p.status}</span></td>
                       <td className="px-4 py-3 text-muted-foreground text-xs whitespace-nowrap">{formatDate(p.payment_date)}</td>
+                      {isCustomer && (
+                        <td className="px-4 py-3">
+                          {p.status === 'COMPLETED' && (
+                            <button onClick={() => setRefundTarget(p)}
+                              className="flex items-center gap-1 text-xs px-2 py-1 rounded-md bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 transition-colors whitespace-nowrap">
+                              <RotateCcw className="w-3 h-3" /> Refund
+                            </button>
+                          )}
+                        </td>
+                      )}
                     </tr>
                   ))}
             </tbody>
@@ -168,6 +186,22 @@ export default function UtilityPaymentsPage() {
           </div>
         )}
       </div>
+
+      {/* Request Refund Confirm */}
+      <ConfirmDialog
+        open={!!refundTarget}
+        onClose={() => setRefundTarget(null)}
+        onConfirm={() => refundTarget && refundMutation.mutate({
+          original_transaction_id: refundTarget.transaction_id,
+          account_id: refundTarget.account_id,
+          amount: Number(refundTarget.amount),
+          reason: `Refund for utility payment: ${refundTarget.provider_name} (${refundTarget.utility_type})`,
+        })}
+        title="Request Refund"
+        message={refundTarget ? `Request a refund of ${formatCurrency(Number(refundTarget.amount))} for ${refundTarget.provider_name}? This will be pending supervisor approval.` : ''}
+        confirmLabel="Request Refund"
+        loading={refundMutation.isPending}
+      />
 
       {/* Pay a Bill Modal */}
       <Modal open={modalOpen} onClose={() => { setModalOpen(false); setStep(1); }} title="Pay a Bill" description={step === 1 ? 'Step 1 of 2 — Bill Details' : 'Step 2 of 2 — Review & Confirm'} size="md">

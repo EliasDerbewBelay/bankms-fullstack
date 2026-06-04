@@ -26,7 +26,7 @@ const navItems = [
   { href: '/atm', icon: Landmark, label: 'ATM Network', roles: ['SUPERVISOR', 'BRANCH_MANAGER', 'ADMIN'] },
   { href: '/teller', icon: Briefcase, label: 'Teller Ops', roles: ['TELLER', 'SUPERVISOR'] },
   { href: '/disputes', icon: MessageSquareWarning, label: 'Disputes', roles: ['CUSTOMER', 'SUPERVISOR', 'BRANCH_MANAGER'] },
-  { href: '/refunds', icon: RotateCcw, label: 'Refunds', roles: ['SUPERVISOR', 'BRANCH_MANAGER', 'ADMIN'] },
+  { href: '/refunds', icon: RotateCcw, label: 'Refunds', roles: ['CUSTOMER', 'SUPERVISOR', 'BRANCH_MANAGER', 'ADMIN'] },
   { href: '/reports', icon: BarChart3, label: 'Reports', roles: ['BRANCH_MANAGER', 'ADMIN'] },
   { href: '/admin', icon: Shield, label: 'Admin', roles: ['ADMIN'] },
 ];

@@ -1,4 +1,6 @@
 import argon2 from 'argon2';
+import { authenticator } from 'otplib';
+import QRCode from 'qrcode';
 import { prisma } from '../../config/database';
 import { ApiError } from '../../utils/ApiError';
 
@@ -87,6 +89,57 @@ export class SettingsService {
       where: { session_id: sessionId },
       data: { is_active: false },
     });
+  }
+
+  async setup2FA(userId: number) {
+    const user = await prisma.online_user.findUnique({ where: { user_id: userId } });
+    if (!user) throw new ApiError('User not found', 404);
+    if (user.two_factor_enabled) throw new ApiError('Two-factor authentication is already enabled', 400);
+
+    const secret = authenticator.generateSecret();
+    const otpAuthUrl = authenticator.keyuri(user.username, 'AASTU Bank MS', secret);
+    const qrCodeDataUrl = await QRCode.toDataURL(otpAuthUrl);
+
+    // Store secret temporarily (not enabled yet — enabled only after verification)
+    await prisma.online_user.update({
+      where: { user_id: userId },
+      data: { two_factor_secret: secret },
+    });
+
+    return { secret, qrCodeDataUrl };
+  }
+
+  async verify2FA(userId: number, token: string) {
+    const user = await prisma.online_user.findUnique({ where: { user_id: userId } });
+    if (!user) throw new ApiError('User not found', 404);
+    if (!user.two_factor_secret) throw new ApiError('No 2FA setup in progress. Call setup first.', 400);
+    if (user.two_factor_enabled) throw new ApiError('Two-factor authentication is already enabled', 400);
+
+    const isValid = authenticator.verify({ token, secret: user.two_factor_secret });
+    if (!isValid) throw new ApiError('Invalid authenticator code', 400);
+
+    await prisma.online_user.update({
+      where: { user_id: userId },
+      data: { two_factor_enabled: true },
+    });
+
+    return { message: '2FA enabled successfully' };
+  }
+
+  async disable2FA(userId: number, password: string) {
+    const user = await prisma.online_user.findUnique({ where: { user_id: userId } });
+    if (!user) throw new ApiError('User not found', 404);
+    if (!user.two_factor_enabled) throw new ApiError('Two-factor authentication is not enabled', 400);
+
+    const valid = await argon2.verify(user.password_hash, password);
+    if (!valid) throw new ApiError('Incorrect password', 400);
+
+    await prisma.online_user.update({
+      where: { user_id: userId },
+      data: { two_factor_enabled: false, two_factor_secret: null },
+    });
+
+    return { message: '2FA disabled successfully' };
   }
 
   async getLookups() {

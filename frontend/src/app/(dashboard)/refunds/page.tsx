@@ -21,17 +21,7 @@ export default function RefundsPage() {
 
   const isSupervisorPlus = ['SUPERVISOR', 'BRANCH_MANAGER', 'ADMIN'].includes(user?.role ?? '');
   const isTellerPlus = ['TELLER', 'SUPERVISOR', 'BRANCH_MANAGER', 'ADMIN'].includes(user?.role ?? '');
-
-  // Redirect unauthorized
-  if (!isTellerPlus) {
-    return (
-      <div className="flex flex-col items-center justify-center h-64 gap-4">
-        <ShieldAlert className="w-12 h-12 text-red-400" />
-        <p className="text-lg font-semibold text-foreground">Access Denied</p>
-        <p className="text-muted-foreground text-sm">You don&apos;t have permission to view this page.</p>
-      </div>
-    );
-  }
+  const isCustomer = user?.role === 'CUSTOMER';
 
   const [tab, setTab] = useState<typeof TABS[number]>('ALL');
   const [page, setPage] = useState(1);
@@ -41,11 +31,13 @@ export default function RefundsPage() {
   const [requestOpen, setRequestOpen] = useState(false);
   const [requestForm, setRequestForm] = useState({ original_transaction_id: '', account_id: '', amount: '', reason: '' });
 
+  const endpoint = isCustomer ? '/refunds/my' : '/refunds';
+
   const { data, isLoading, refetch, isFetching } = useQuery({
-    queryKey: ['refunds', tab, page],
+    queryKey: ['refunds', tab, page, isCustomer],
     queryFn: async () => {
       const params = new URLSearchParams({ page: String(page), limit: '20', ...(tab !== 'ALL' && { status: tab }) });
-      const r = await api.get(`/refunds?${params}`);
+      const r = await api.get(`${endpoint}?${params}`);
       return r.data;
     },
     staleTime: 30_000,
@@ -55,6 +47,7 @@ export default function RefundsPage() {
     queryKey: ['refunds-pending-count'],
     queryFn: async () => { const r = await api.get('/refunds?status=PENDING_APPROVAL&limit=1'); return r.data.meta?.total ?? 0; },
     refetchInterval: 60_000,
+    enabled: !isCustomer,
   });
 
   const approveMutation = useMutation({
@@ -97,7 +90,7 @@ export default function RefundsPage() {
           <button onClick={() => refetch()} className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm text-muted-foreground hover:bg-accent transition-colors">
             <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} /> Refresh
           </button>
-          {isTellerPlus && (
+          {isTellerPlus && !isCustomer && (
             <button onClick={() => setRequestOpen(true)} className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors">
               <Plus className="w-4 h-4" /> Request Refund
             </button>
@@ -121,18 +114,19 @@ export default function RefundsPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border bg-muted/40">
-                {['Refund ID', 'Transaction Ref', 'Account', 'Amount', 'Reason', 'Requested By', 'Status', 'Requested At', ...(isSupervisorPlus ? ['Actions'] : [])].map(h => (
+                {['Refund ID', 'Transaction Ref', 'Account', 'Amount', 'Reason', ...(!isCustomer ? ['Requested By'] : []), 'Status', 'Requested At', ...(!isCustomer && isSupervisorPlus ? ['Actions'] : [])].map(h => (
                   <th key={h} className="text-left px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider whitespace-nowrap">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {isLoading
-                ? Array.from({ length: 8 }).map((_, i) => <tr key={i}>{Array.from({ length: isSupervisorPlus ? 9 : 8 }).map((_, j) => <td key={j} className="px-4 py-3"><div className="h-4 bg-muted rounded animate-pulse" /></td>)}</tr>)
+                  ? Array.from({ length: 8 }).map((_, i) => <tr key={i}>{Array.from({ length: isCustomer ? 7 : (isSupervisorPlus ? 9 : 8) }).map((_, j) => <td key={j} className="px-4 py-3"><div className="h-4 bg-muted rounded animate-pulse" /></td>)}</tr>)
                 : items.length === 0
-                  ? <tr><td colSpan={isSupervisorPlus ? 9 : 8} className="px-4 py-16 text-center"><RotateCcw className="w-10 h-10 text-muted-foreground/40 mx-auto mb-3" /><p className="text-muted-foreground text-sm">No refunds found</p></td></tr>
+                  ? <tr><td colSpan={isCustomer ? 7 : (isSupervisorPlus ? 9 : 8)} className="px-4 py-16 text-center"><RotateCcw className="w-10 h-10 text-muted-foreground/40 mx-auto mb-3" /><p className="text-muted-foreground text-sm">No refunds found</p></td></tr>
                   : items.map((r: any) => {
                     const isSelfRequested = r.requested_by_id === user?.linkedEmployeeId;
+                    const colCount = isCustomer ? 7 : (isSupervisorPlus ? 9 : 8);
                     return (
                       <tr key={r.refund_id} className="hover:bg-muted/30 transition-colors">
                         <td className="px-4 py-3 font-mono text-xs text-foreground">#{r.refund_id}</td>
@@ -140,10 +134,10 @@ export default function RefundsPage() {
                         <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{r.account?.account_number ?? '—'}</td>
                         <td className="px-4 py-3 font-financial font-semibold whitespace-nowrap tabular-nums">{formatCurrency(Number(r.amount))}</td>
                         <td className="px-4 py-3 text-xs text-muted-foreground max-w-[160px]" title={r.reason}>{truncate(r.reason ?? '', 40)}</td>
-                        <td className="px-4 py-3 text-xs text-foreground">{r.requested_by ? `${r.requested_by.first_name} ${r.requested_by.last_name}` : '—'}</td>
+                        {!isCustomer && <td className="px-4 py-3 text-xs text-foreground">{r.requested_by ? `${r.requested_by.first_name} ${r.requested_by.last_name}` : '—'}</td>}
                         <td className="px-4 py-3"><span className={getStatusBadge(r.status)}>{r.status.replace(/_/g, ' ')}</span></td>
                         <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">{formatDateTime(r.requested_at)}</td>
-                        {isSupervisorPlus && (
+                        {!isCustomer && isSupervisorPlus && (
                           <td className="px-4 py-3">
                             {r.status === 'PENDING_APPROVAL' && (
                               <div className="flex items-center gap-1">
