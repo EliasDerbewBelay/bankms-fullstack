@@ -13,7 +13,11 @@ export class CustomersService {
 
     const where: Prisma.customerWhereInput = {
       ...(customer_type && { customer_type: customer_type as any }),
-      ...(kyc_status && { kyc_status: kyc_status as any }),
+      ...(kyc_status && (
+        kyc_status.includes(',')
+          ? { kyc_status: { in: kyc_status.split(',') as any[] } }
+          : { kyc_status: kyc_status as any }
+      )),
       ...(search && {
         OR: [
           { first_name: { contains: search, mode: 'insensitive' } },

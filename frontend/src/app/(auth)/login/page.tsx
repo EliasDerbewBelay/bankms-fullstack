@@ -230,7 +230,7 @@ export default function LoginPage() {
             {[
               { role: 'Admin', user: 'abebe.girma' },
               { role: 'Manager', user: 'tigist.alemu' },
-              { role: 'Supervisor', user: 'dawit.kebede' },
+              { role: 'Supervisor', user: 'dawit.hailu' },
               { role: 'Teller', user: 'yonas.bekele' },
               { role: 'Customer', user: 'meron.tadesse' },
             ].map((c) => (
@@ -240,7 +240,7 @@ export default function LoginPage() {
               </div>
             ))}
             <p className="text-xs text-muted-foreground pt-1">
-              Password: <span className="font-mono">placeholder123</span> (update in DB)
+              Password: <span className="font-mono">Password123!</span>
             </p>
           </div>
 

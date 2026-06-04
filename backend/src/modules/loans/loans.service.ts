@@ -12,7 +12,11 @@ export class LoansService {
     const { status, loan_type, customer_id } = req.query as Record<string, string>;
 
     const where: Prisma.loan_applicationWhereInput = {
-      ...(status && { status: status as any }),
+      ...(status && (
+        status.includes(',')
+          ? { status: { in: status.split(',') as any[] } }
+          : { status: status as any }
+      )),
       ...(loan_type && { loan_type: loan_type as any }),
       ...(customer_id && { customer_id: parseInt(customer_id) }),
     };

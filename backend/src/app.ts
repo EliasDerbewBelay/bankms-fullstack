@@ -25,6 +25,7 @@ import settingsRoutes from './modules/settings/settings.routes';
 import beneficiariesRoutes from './modules/beneficiaries/beneficiaries.routes';
 import utilityPaymentsRoutes from './modules/utility-payments/utility-payments.routes';
 import refundsRoutes from './modules/refunds/refunds.routes';
+import supervisorRoutes from './modules/supervisor/supervisor.routes';
 
 const app: Application = express();
 
@@ -103,6 +104,7 @@ app.use(`${API_PREFIX}/beneficiaries`, beneficiariesRoutes);
 app.use(`${API_PREFIX}/utility-payments`, utilityPaymentsRoutes);
 app.use(`${API_PREFIX}/refunds`, refundsRoutes);
 app.use(`${API_PREFIX}/teller-drawers`, tellerDrawersRoutes);
+app.use(`${API_PREFIX}/supervisor`, supervisorRoutes);
 
 // ── 404 handler ───────────────────────────────────────────────
 app.use(notFoundHandler);
