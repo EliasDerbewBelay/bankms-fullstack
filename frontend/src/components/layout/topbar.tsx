@@ -19,6 +19,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/atm': 'ATM Network',
   '/teller': 'Teller Operations',
   '/supervisor': 'Supervisor Operations',
+  '/branch-manager': 'Branch Manager Operations',
   '/disputes': 'Disputes',
   '/reports': 'Reports',
   '/admin': 'Administration',

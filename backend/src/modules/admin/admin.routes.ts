@@ -10,7 +10,7 @@ const router = Router();
 router.use(authenticate, authorize('SUPERVISOR'));
 
 router.get('/dashboard', getDashboard);
-router.get('/audit-logs', authorizeExact('ADMIN'), getAuditLogs);
+router.get('/audit-logs', authorizeExact('BRANCH_MANAGER', 'ADMIN'), getAuditLogs);
 router.get('/branches', getBranches);
 router.get('/employees', getEmployees);
 router.get('/atm', getAtmStatus);

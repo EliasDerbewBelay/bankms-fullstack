@@ -247,21 +247,30 @@ export class LoansService {
   }
 
   async getLoanStats() {
-    const [total, active, defaulted, totalDisbursed, totalOutstanding] = await Promise.all([
+    const [total, activeCount, defaulted, totalDisbursed, totalOutstanding, activeLoans] = await Promise.all([
       prisma.loan.count(),
       prisma.loan.count({ where: { status: 'ACTIVE' } }),
       prisma.loan.count({ where: { status: 'DEFAULTED' } }),
       prisma.loan.aggregate({ where: { status: { not: 'PENDING_DISBURSEMENT' } }, _sum: { principal_amount: true } }),
       prisma.loan.aggregate({ where: { status: 'ACTIVE' }, _sum: { outstanding_balance: true } }),
+      prisma.loan.findMany({
+        where: { status: 'ACTIVE' },
+        take: 50,
+        orderBy: { start_date: 'desc' },
+        include: {
+          customer: { select: { first_name: true, last_name: true, company_name: true } },
+        },
+      }),
     ]);
 
     return {
       totalLoans: total,
-      activeLoans: active,
+      activeCount,
       defaultedLoans: defaulted,
       totalDisbursed: totalDisbursed._sum.principal_amount ?? 0,
       totalOutstanding: totalOutstanding._sum.outstanding_balance ?? 0,
       nplRatio: total > 0 ? ((defaulted / total) * 100).toFixed(2) : '0.00',
+      activeLoans,
     };
   }
 }
