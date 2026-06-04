@@ -56,7 +56,7 @@ export default function LoginPage() {
               <Building2 className="w-6 h-6 text-white" />
             </div>
             <div>
-              <p className="text-white font-bold text-lg leading-none">AASTU Bank</p>
+              <p className="text-white font-bold text-lg leading-none">CoreBank</p>
               <p className="text-white/50 text-xs">Management System</p>
             </div>
           </div>
@@ -112,7 +112,7 @@ export default function LoginPage() {
               <Building2 className="w-5 h-5 text-white" />
             </div>
             <div>
-              <p className="font-bold text-foreground">AASTU Bank MS</p>
+              <p className="font-bold text-foreground">CoreBank MS</p>
               <p className="text-xs text-muted-foreground">Management System</p>
             </div>
           </div>
@@ -245,7 +245,7 @@ export default function LoginPage() {
           </div>
 
           <p className="text-center text-xs text-muted-foreground">
-            AASTU Bank Management System © {new Date().getFullYear()}
+            CoreBank Management System © {new Date().getFullYear()}
           </p>
         </div>
       </div>

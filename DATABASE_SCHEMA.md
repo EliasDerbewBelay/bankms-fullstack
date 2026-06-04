@@ -1,4 +1,4 @@
-# AASTU Bank Management System — Database Schema Reference
+# CoreBank MS — Database Schema Reference
 
 > **Database:** PostgreSQL | **ORM:** Prisma  
 > **Total Tables:** 34 | **Total Enums:** 30  
@@ -940,4 +940,4 @@ online_user ───────── session, notification, audit_log (1:N)
 
 ---
 
-*Generated from `backend/prisma/schema.prisma` — AASTU Bank Management System*
+*Generated from `backend/prisma/schema.prisma` — CoreBank Management System*

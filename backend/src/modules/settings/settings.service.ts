@@ -97,7 +97,7 @@ export class SettingsService {
     if (user.two_factor_enabled) throw new ApiError('Two-factor authentication is already enabled', 400);
 
     const secret = authenticator.generateSecret();
-    const otpAuthUrl = authenticator.keyuri(user.username, 'AASTU Bank MS', secret);
+    const otpAuthUrl = authenticator.keyuri(user.username, 'CoreBank MS', secret);
     const qrCodeDataUrl = await QRCode.toDataURL(otpAuthUrl);
 
     // Store secret temporarily (not enabled yet — enabled only after verification)

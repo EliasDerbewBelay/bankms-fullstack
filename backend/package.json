@@ -1,7 +1,7 @@
 {
   "name": "bankms-backend",
   "version": "1.0.0",
-  "description": "AASTU Bank Management System — Enterprise Backend API",
+  "description": "CoreBank MS — Enterprise Bank Management System API",
   "main": "dist/server.js",
   "scripts": {
     "dev": "nodemon",

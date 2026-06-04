@@ -10,8 +10,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: { default: 'AASTU Bank MS', template: '%s | AASTU Bank MS' },
-  description: 'Advanced Bank Management System — AASTU',
+  title: { default: 'CoreBank MS', template: '%s | CoreBank MS' },
+  description: 'CoreBank — Enterprise Bank Management System',
   icons: { icon: '/favicon.ico' },
 };
 

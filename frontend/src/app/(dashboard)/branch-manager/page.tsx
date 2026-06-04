@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import {
-  AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
+  AreaChart, Area, ComposedChart, BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
 } from 'recharts';
 import { api } from '../../../lib/api';
@@ -158,38 +158,46 @@ function DashboardTab() {
         <Card className="lg:col-span-2">
           <SectionTitle title="Transaction Volume Trend" subtitle="Last 30 days" />
           <div className="p-4 h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={trendData}>
-                <defs>
-                  <linearGradient id="colorVol" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#14b8a6" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#14b8a6" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                <XAxis dataKey="date" tick={{ fontSize: 10 }} />
-                <YAxis tick={{ fontSize: 10 }} tickFormatter={v => `$${(v/1000).toFixed(0)}k`} />
-                <Tooltip formatter={(v: any) => formatCurrency(v)} />
-                <Area type="monotone" dataKey="Volume" stroke="#14b8a6" fill="url(#colorVol)" strokeWidth={2} />
-              </AreaChart>
-            </ResponsiveContainer>
+            {trendData.length === 0 ? (
+              <div className="flex items-center justify-center h-full text-sm text-muted-foreground">No transaction data</div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={trendData}>
+                  <defs>
+                    <linearGradient id="colorVol" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#14b8a6" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="#14b8a6" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                  <XAxis dataKey="date" tick={{ fontSize: 10 }} />
+                  <YAxis tick={{ fontSize: 10 }} tickFormatter={v => `${(v/1000).toFixed(0)}k`} />
+                  <Tooltip formatter={(v: any) => formatCurrency(v)} />
+                  <Area type="monotone" dataKey="Volume" stroke="#14b8a6" fill="url(#colorVol)" strokeWidth={2} />
+                </AreaChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </Card>
 
         <Card>
           <SectionTitle title="Transactions by Type" />
           <div className="p-4 h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie data={typePieData} cx="50%" cy="50%" innerRadius={55} outerRadius={80} paddingAngle={3} dataKey="value">
-                  {typePieData.map((_: any, i: number) => (
-                    <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip />
-                <Legend wrapperStyle={{ fontSize: '10px' }} />
-              </PieChart>
-            </ResponsiveContainer>
+            {typePieData.length === 0 ? (
+              <div className="flex items-center justify-center h-full text-sm text-muted-foreground">No transaction data</div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie data={typePieData} cx="50%" cy="50%" innerRadius={55} outerRadius={80} paddingAngle={3} dataKey="value">
+                    {typePieData.map((_: any, i: number) => (
+                      <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                  <Legend wrapperStyle={{ fontSize: '10px' }} />
+                </PieChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </Card>
       </div>
@@ -456,31 +464,39 @@ function TxStatsTab() {
         <Card>
           <SectionTitle title="Transactions by Type" subtitle="All time, completed" />
           <div className="p-4 h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={barData} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                <XAxis type="number" tick={{ fontSize: 10 }} />
-                <YAxis dataKey="type" type="category" tick={{ fontSize: 10 }} width={100} />
-                <Tooltip />
-                <Bar dataKey="Count" fill="#14b8a6" radius={[0, 4, 4, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+            {barData.length === 0 ? (
+              <div className="flex items-center justify-center h-full text-sm text-muted-foreground">No transaction data</div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={barData} layout="vertical">
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                  <XAxis type="number" tick={{ fontSize: 10 }} />
+                  <YAxis dataKey="type" type="category" tick={{ fontSize: 10 }} width={100} />
+                  <Tooltip />
+                  <Bar dataKey="Count" fill="#14b8a6" radius={[0, 4, 4, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </Card>
 
         <Card>
           <SectionTitle title="Transactions by Channel" subtitle="Completed only" />
           <div className="p-4 h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie data={channelData} cx="50%" cy="45%" outerRadius={90} dataKey="value" label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
-                  {channelData.map((_: any, i: number) => (
-                    <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
+            {channelData.length === 0 ? (
+              <div className="flex items-center justify-center h-full text-sm text-muted-foreground">No transaction data</div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie data={channelData} cx="50%" cy="45%" outerRadius={90} dataKey="value" label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
+                    {channelData.map((_: any, i: number) => (
+                      <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </Card>
       </div>
@@ -489,8 +505,11 @@ function TxStatsTab() {
       <Card>
         <SectionTitle title="Daily Transaction Volume" subtitle="Last 30 days" />
         <div className="p-4 h-64">
+          {(data.trend ?? []).length === 0 ? (
+            <div className="flex items-center justify-center h-full text-sm text-muted-foreground">No transaction data</div>
+          ) : (
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={(data.trend ?? []).map((d: any) => ({
+            <ComposedChart data={(data.trend ?? []).map((d: any) => ({
               date: new Date(d.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
               Volume: Number(d.volume),
               Count: Number(d.count),
@@ -503,14 +522,15 @@ function TxStatsTab() {
               </defs>
               <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
               <XAxis dataKey="date" tick={{ fontSize: 10 }} />
-              <YAxis yAxisId="vol" tick={{ fontSize: 10 }} tickFormatter={v => `$${(v/1000).toFixed(0)}k`} />
+              <YAxis yAxisId="vol" tick={{ fontSize: 10 }} tickFormatter={v => `${(v/1000).toFixed(0)}k`} />
               <YAxis yAxisId="cnt" orientation="right" tick={{ fontSize: 10 }} />
               <Tooltip formatter={(v: any, n) => n === 'Volume' ? formatCurrency(v) : v} />
               <Legend />
-              <Area yAxisId="vol" type="monotone" dataKey="Volume" stroke="#3b82f6" fill="url(#colorV2)" strokeWidth={2} />
               <Bar yAxisId="cnt" dataKey="Count" fill="#e2e8f0" radius={[2, 2, 0, 0]} />
-            </AreaChart>
+              <Area yAxisId="vol" type="monotone" dataKey="Volume" stroke="#3b82f6" fill="url(#colorV2)" strokeWidth={2} />
+            </ComposedChart>
           </ResponsiveContainer>
+          )}
         </div>
       </Card>
     </div>
@@ -532,11 +552,15 @@ function LoanPortfolioTab() {
   if (isLoading) return <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-muted-foreground" /></div>;
 
   const loans = admin?.loans ?? {};
-  const pieData = [
-    { name: 'Active', value: loans.active ?? 0 },
-    { name: 'Defaulted', value: loans.defaulted ?? 0 },
-    { name: 'Other', value: Math.max(0, (loans.total ?? 0) - (loans.active ?? 0) - (loans.defaulted ?? 0)) },
-  ].filter(d => d.value > 0);
+  // Use real loansByType from API — falls back to status breakdown if no type data yet
+  const loansByType: any[] = admin?.loansByType ?? [];
+  const pieData = loansByType.length > 0
+    ? loansByType.map((l: any) => ({ name: l.type.replace(/_/g, ' '), value: l.count }))
+    : [
+        { name: 'Active', value: loans.active ?? 0 },
+        { name: 'Defaulted', value: loans.defaulted ?? 0 },
+        { name: 'Other', value: Math.max(0, (loans.total ?? 0) - (loans.active ?? 0) - (loans.defaulted ?? 0)) },
+      ].filter((d: any) => d.value > 0);
 
   return (
     <div className="space-y-6">
@@ -575,19 +599,23 @@ function LoanPortfolioTab() {
         </Card>
 
         <Card>
-          <SectionTitle title="Loan Portfolio Mix" />
+          <SectionTitle title="Loan Portfolio Mix" subtitle="Active loans by loan type" />
           <div className="p-4 h-56">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie data={pieData} cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={4} dataKey="value">
-                  {pieData.map((_: any, i: number) => (
-                    <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip />
-                <Legend wrapperStyle={{ fontSize: '11px' }} />
-              </PieChart>
-            </ResponsiveContainer>
+            {pieData.length === 0 ? (
+              <div className="flex items-center justify-center h-full text-sm text-muted-foreground">No loan data</div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie data={pieData} cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={4} dataKey="value">
+                    {pieData.map((_: any, i: number) => (
+                      <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                  <Legend wrapperStyle={{ fontSize: '11px' }} />
+                </PieChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </Card>
       </div>

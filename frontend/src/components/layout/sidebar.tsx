@@ -58,7 +58,7 @@ export function Sidebar() {
         {!collapsed && (
           <div className="overflow-hidden">
             <p className="text-sm font-bold text-sidebar-foreground leading-none truncate">
-              AASTU Bank MS
+              CoreBank MS
             </p>
             <p className="text-xs text-sidebar-foreground/40 mt-0.5 truncate">
               {user?.role?.replace('_', ' ')}

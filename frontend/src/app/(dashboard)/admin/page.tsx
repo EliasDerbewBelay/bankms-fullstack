@@ -136,15 +136,19 @@ function DashboardTab() {
         <Card>
           <SectionTitle title="Transaction Type Breakdown" subtitle="All-time completed" />
           <div className="p-4 h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={byTypeData} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                <XAxis type="number" tick={{ fontSize: 10 }} />
-                <YAxis dataKey="name" type="category" tick={{ fontSize: 10 }} width={120} />
-                <Tooltip />
-                <Bar dataKey="value" fill="#14b8a6" radius={[0,4,4,0]} />
-              </BarChart>
-            </ResponsiveContainer>
+            {byTypeData.length === 0 ? (
+              <div className="flex items-center justify-center h-full text-sm text-muted-foreground">No transaction data</div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={byTypeData} layout="vertical">
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                  <XAxis type="number" tick={{ fontSize: 10 }} />
+                  <YAxis dataKey="name" type="category" tick={{ fontSize: 10 }} width={120} />
+                  <Tooltip />
+                  <Bar dataKey="value" fill="#14b8a6" radius={[0,4,4,0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </Card>
         <Card>
@@ -1542,14 +1546,18 @@ function ReportsTab() {
         <Card>
           <SectionTitle title="KYC Status Distribution" subtitle="All customers" />
           <div className="p-4 h-60">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie data={kycPie} cx="50%" cy="50%" outerRadius={85} dataKey="value" label={({ name, percent }) => `${name} ${(percent*100).toFixed(0)}%`}>
-                  {kycPie.map((_: any, i: number) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
+            {kycPie.length === 0 ? (
+              <div className="flex items-center justify-center h-full text-sm text-muted-foreground">No customer data</div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie data={kycPie} cx="50%" cy="50%" outerRadius={85} dataKey="value" label={({ name, percent }) => `${name} ${(percent*100).toFixed(0)}%`}>
+                    {kycPie.map((_: any, i: number) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </Card>
 
@@ -1557,15 +1565,22 @@ function ReportsTab() {
         <Card>
           <SectionTitle title="Loan Aging Report" subtitle="By loan status" />
           <div className="p-4 h-60">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={loanAgingBar}>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                <XAxis dataKey="status" tick={{ fontSize: 10 }} />
-                <YAxis tick={{ fontSize: 10 }} />
-                <Tooltip formatter={(v: any, n) => n === 'outstanding' ? formatCurrency(v) : v} />
-                <Bar dataKey="count" fill="#14b8a6" radius={[4,4,0,0]} name="Count" />
-              </BarChart>
-            </ResponsiveContainer>
+            {loanAgingBar.length === 0 ? (
+              <div className="flex items-center justify-center h-full text-sm text-muted-foreground">No loan data</div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={loanAgingBar}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                  <XAxis dataKey="status" tick={{ fontSize: 10 }} />
+                  <YAxis yAxisId="cnt" tick={{ fontSize: 10 }} />
+                  <YAxis yAxisId="amt" orientation="right" tick={{ fontSize: 10 }} tickFormatter={v => `${(v/1000000).toFixed(1)}M`} />
+                  <Tooltip formatter={(v: any, n) => n === 'Outstanding (ETB)' ? formatCurrency(v) : Number(v).toLocaleString()} />
+                  <Legend />
+                  <Bar yAxisId="cnt" dataKey="count" fill="#14b8a6" radius={[4,4,0,0]} name="Loan Count" />
+                  <Bar yAxisId="amt" dataKey="outstanding" fill="#6366f1" radius={[4,4,0,0]} name="Outstanding (ETB)" />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </Card>
       </div>

@@ -83,6 +83,14 @@ export class AdminService {
       orderBy: { _count: { transaction_id: 'desc' } },
     });
 
+    // Loan breakdown by type
+    const loansByType = await prisma.loan.groupBy({
+      by: ['loan_type'],
+      _count: { loan_id: true },
+      _sum: { principal_amount: true, outstanding_balance: true },
+      orderBy: { _count: { loan_id: 'desc' } },
+    });
+
     // Recent transactions (last 10)
     const recentTransactions = await prisma.transaction.findMany({
       take: 10,
@@ -142,6 +150,12 @@ export class AdminService {
       byChannel: byChannel.map((c) => ({
         channel: c.channel,
         count: c._count.transaction_id,
+      })),
+      loansByType: loansByType.map((l) => ({
+        type: l.loan_type,
+        count: l._count.loan_id,
+        disbursed: Number(l._sum.principal_amount ?? 0),
+        outstanding: Number(l._sum.outstanding_balance ?? 0),
       })),
       recentTransactions,
     };

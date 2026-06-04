@@ -45,6 +45,7 @@ interface DashboardData {
   trend: Array<{ date: string; count: number; volume: number }>;
   byType: Array<{ type: string; count: number; volume: number }>;
   byChannel: Array<{ channel: string; count: number }>;
+  loansByType: Array<{ type: string; count: number; disbursed: number; outstanding: number }>;
   recentTransactions: TxnRow[];
 }
 
@@ -243,13 +244,12 @@ export default function DashboardPage() {
     );
   }
 
-  const loanTypes = [
-    { name: 'Personal', value: 30 },
-    { name: 'Home', value: 25 },
-    { name: 'Auto', value: 20 },
-    { name: 'Corporate', value: 15 },
-    { name: 'Education', value: 10 },
-  ];
+  const loanTypes = (data.loansByType ?? []).map((l: any) => ({
+    name: l.type.replace(/_/g, ' '),
+    value: l.count,
+    disbursed: l.disbursed,
+    outstanding: l.outstanding,
+  }));
 
   const barTypeData = (data.byType ?? []).map((t) => ({
     name: TYPE_LABELS[t.type] ?? t.type.replace(/_/g, ' '),
@@ -484,36 +484,40 @@ export default function DashboardPage() {
         <div className="rounded-xl border bg-card p-5 shadow-sm">
           <div className="mb-4">
             <h3 className="text-sm font-semibold text-foreground">Loan Portfolio Mix</h3>
-            <p className="text-xs text-muted-foreground mt-0.5">By type</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Loans by type (from database)</p>
           </div>
-          <ResponsiveContainer width="100%" height={220}>
-            <PieChart>
-              <Pie
-                data={loanTypes}
-                cx="50%"
-                cy="45%"
-                innerRadius={55}
-                outerRadius={80}
-                paddingAngle={3}
-                dataKey="value"
-              >
-                {loanTypes.map((_, i) => (
-                  <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
-                ))}
-              </Pie>
-              <Legend
-                iconType="circle"
-                iconSize={8}
-                formatter={(value) => (
-                  <span style={{ fontSize: 11, color: 'hsl(var(--muted-foreground))' }}>{value}</span>
-                )}
-              />
-              <Tooltip
-                contentStyle={ChartTooltipStyle()}
-                formatter={(value: number) => [`${value}%`, 'Share']}
-              />
-            </PieChart>
-          </ResponsiveContainer>
+          {loanTypes.length === 0 ? (
+            <div className="flex items-center justify-center h-[220px] text-sm text-muted-foreground">No loans in portfolio</div>
+          ) : (
+            <ResponsiveContainer width="100%" height={220}>
+              <PieChart>
+                <Pie
+                  data={loanTypes}
+                  cx="50%"
+                  cy="45%"
+                  innerRadius={55}
+                  outerRadius={80}
+                  paddingAngle={3}
+                  dataKey="value"
+                >
+                  {loanTypes.map((_, i) => (
+                    <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                  ))}
+                </Pie>
+                <Legend
+                  iconType="circle"
+                  iconSize={8}
+                  formatter={(value) => (
+                    <span style={{ fontSize: 11, color: 'hsl(var(--muted-foreground))' }}>{value}</span>
+                  )}
+                />
+                <Tooltip
+                  contentStyle={ChartTooltipStyle()}
+                  formatter={(value: number) => [value.toLocaleString(), 'Loans']}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          )}
         </div>
       </div>
 
@@ -1025,7 +1029,7 @@ function CustomerDashboard() {
             <div className="rounded-xl border bg-card p-5 shadow-sm">
               <div className="mb-4">
                 <h3 className="text-sm font-semibold text-foreground">Transaction Types</h3>
-                <p className="text-xs text-muted-foreground mt-0.5">All time distribution</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Completed transactions (all accounts)</p>
               </div>
               {spendingTypeData.length === 0 ? (
                 <div className="flex items-center justify-center h-[200px] text-sm text-muted-foreground">No data</div>

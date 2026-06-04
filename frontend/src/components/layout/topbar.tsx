@@ -34,7 +34,7 @@ function resolveTitle(pathname: string): string {
   const match = Object.keys(PAGE_TITLES)
     .filter((key) => pathname === key || pathname.startsWith(`${key}/`))
     .sort((a, b) => b.length - a.length)[0];
-  return match ? PAGE_TITLES[match] : 'AASTU Bank MS';
+  return match ? PAGE_TITLES[match] : 'CoreBank MS';
 }
 
 export function Topbar() {

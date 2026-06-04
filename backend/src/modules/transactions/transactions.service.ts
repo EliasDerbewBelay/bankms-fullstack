@@ -394,34 +394,48 @@ export class TransactionsService {
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-    // Get all account IDs
     const customerAccounts = await prisma.customer_account.findMany({
       where: { customer_id: customerId },
       select: { account_id: true },
     });
-    const accountIds = customerAccounts.map((ca: any) => ca.account_id);
+    const accountIds = customerAccounts.map((ca) => ca.account_id);
 
-    const [trend, byType, recent] = await Promise.all([
+    if (accountIds.length === 0) {
+      return { trend: [], byType: [], recentTransactions: [] };
+    }
+
+    const accountFilter = {
+      OR: [
+        { account_id: { in: accountIds } },
+        { to_account_id: { in: accountIds } },
+      ],
+    };
+
+    const [trend, byTypeRaw, recent] = await Promise.all([
       prisma.$queryRaw<Array<{ date: string; count: bigint; volume: number }>>`
         SELECT
           DATE(transaction_date) as date,
           COUNT(*)::bigint as count,
           COALESCE(SUM(CASE WHEN status = 'COMPLETED' THEN amount ELSE 0 END), 0) as volume
         FROM "transaction"
-        WHERE account_id = ANY(${accountIds}::int[])
+        WHERE (account_id = ANY(${accountIds}::int[]) OR to_account_id = ANY(${accountIds}::int[]))
           AND transaction_date >= ${thirtyDaysAgo}
         GROUP BY DATE(transaction_date)
         ORDER BY date ASC
       `,
-      prisma.transaction.groupBy({
-        by: ['transaction_type'],
-        _count: { transaction_id: true },
-        _sum: { amount: true },
-        where: { account_id: { in: accountIds }, status: 'COMPLETED' },
-        orderBy: { _count: { transaction_id: 'desc' } },
-      }),
+      prisma.$queryRaw<Array<{ type: string; count: bigint; volume: number }>>`
+        SELECT
+          transaction_type as type,
+          COUNT(*)::bigint as count,
+          COALESCE(SUM(amount), 0) as volume
+        FROM "transaction"
+        WHERE (account_id = ANY(${accountIds}::int[]) OR to_account_id = ANY(${accountIds}::int[]))
+          AND status = 'COMPLETED'
+        GROUP BY transaction_type
+        ORDER BY count DESC
+      `,
       prisma.transaction.findMany({
-        where: { account_id: { in: accountIds } },
+        where: accountFilter,
         take: 10,
         orderBy: { transaction_date: 'desc' },
         select: {
@@ -439,8 +453,16 @@ export class TransactionsService {
     ]);
 
     return {
-      trend: trend.map((d) => ({ date: String(d.date), count: Number(d.count), volume: Number(d.volume) })),
-      byType: byType.map((t) => ({ type: t.transaction_type, count: t._count.transaction_id, volume: Number(t._sum.amount ?? 0) })),
+      trend: trend.map((d) => ({
+        date: String(d.date),
+        count: Number(d.count),
+        volume: Number(d.volume),
+      })),
+      byType: byTypeRaw.map((t) => ({
+        type: t.type,
+        count: Number(t.count),
+        volume: Number(t.volume),
+      })),
       recentTransactions: recent,
     };
   }
