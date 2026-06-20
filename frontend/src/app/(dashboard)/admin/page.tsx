@@ -1655,7 +1655,7 @@ export default function AdminPage() {
             </div>
             <div>
               <h1 className="text-lg font-bold text-card-foreground">Admin Operations Center</h1>
-              <p className="text-xs text-muted-foreground">{user?.email} — Level 4 Highest Privilege · Full System Access</p>
+              <p className="text-xs text-muted-foreground">{user?.username} — Level 4 Highest Privilege · Full System Access</p>
             </div>
             <div className="ml-auto">
               <span className="hidden sm:flex items-center gap-1.5 text-xs bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 px-3 py-1.5 rounded-full font-medium">

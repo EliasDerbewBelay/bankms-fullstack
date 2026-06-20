@@ -1101,7 +1101,7 @@ export default function SupervisorPage() {
             <div>
               <h1 className="text-lg font-bold text-card-foreground">Supervisor Operations Center</h1>
               <p className="text-xs text-muted-foreground">
-                {user?.email} — Level 2 Mid-Office · Approvals &amp; Overrides
+                {user?.username} — Level 2 Mid-Office · Approvals &amp; Overrides
               </p>
             </div>
             <div className="ml-auto flex items-center gap-2">

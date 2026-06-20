@@ -14,7 +14,8 @@ interface Toast {
 }
 
 interface ToastContextValue {
-  toast: (opts: Omit<Toast, 'id'>) => void;
+  /** Pass `{ type, title }` or shorthand `(title, type)`. */
+  toast: (opts: Omit<Toast, 'id'> | string, type?: ToastType) => void;
   success: (title: string, description?: string) => void;
   error: (title: string, description?: string) => void;
   warning: (title: string, description?: string) => void;
@@ -63,8 +64,16 @@ export function Toaster({ children }: { children?: React.ReactNode }) {
     setTimeout(() => remove(id), 4500);
   }, [remove]);
 
+  const toast = useCallback((titleOrOpts: Omit<Toast, 'id'> | string, type?: ToastType) => {
+    if (typeof titleOrOpts === 'string') {
+      add({ type: type ?? 'info', title: titleOrOpts });
+      return;
+    }
+    add(titleOrOpts);
+  }, [add]);
+
   const value: ToastContextValue = {
-    toast: add,
+    toast,
     success: (title, description) => add({ type: 'success', title, description }),
     error: (title, description) => add({ type: 'error', title, description }),
     warning: (title, description) => add({ type: 'warning', title, description }),

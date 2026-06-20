@@ -1148,7 +1148,7 @@ export default function BranchManagerPage() {
             <div>
               <h1 className="text-lg font-bold text-card-foreground">Branch Manager Operations Center</h1>
               <p className="text-xs text-muted-foreground">
-                {user?.email} — Level 3 Branch Authority · Loan Disbursement &amp; Oversight
+                {user?.username} — Level 3 Branch Authority · Loan Disbursement &amp; Oversight
               </p>
             </div>
             <div className="ml-auto">
