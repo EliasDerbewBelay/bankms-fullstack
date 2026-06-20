@@ -65,6 +65,8 @@ export const useAuthStore = create<AuthState>()(
       logout: async () => {
         try {
           await api.post('/auth/logout');
+        } catch {
+          // Backend may be unreachable — still clear local session below
         } finally {
           localStorage.removeItem('accessToken');
           localStorage.removeItem('refreshToken');

@@ -56,11 +56,20 @@ psql -U postgres -d bankdb -f schema.sql
 psql -U postgres -d bankdb -f backend/migrations/001_audit_log_safe.sql
 ```
 
-Optional seed scripts:
+Seed demo data (required for login on a fresh database):
 
 ```bash
-node backend/seed_ethiopian_banks.js
-node backend/reset_demo_passwords.js   # sets demo users to Password123!
+cd backend
+pnpm db:seed
+# Creates org, 9 demo users, accounts, sample transactions
+# Password for all demo users: Password123!
+```
+
+Optional:
+
+```bash
+pnpm seed:banks              # Ethiopian commercial banks (interbank transfers)
+pnpm seed:reset-passwords    # Re-hash passwords only (users must already exist)
 ```
 
 ### 3. Frontend env
@@ -79,7 +88,7 @@ cd backend && pnpm dev
 cd frontend && pnpm dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000). Demo credentials are shown on the login page (password: `Password123!` after running reset script).
+Open [http://localhost:3000](http://localhost:3000). Demo credentials are shown on the login page (password: `Password123!` after running `pnpm db:seed`).
 
 ## Production Build
 
@@ -151,4 +160,4 @@ bankms-fullstack/
 
 ## License
 
-Private / educational use — AASTU CoreBank MS project.
+Private / educational use — CoreBank MS project.
