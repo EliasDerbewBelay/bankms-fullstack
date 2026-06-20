@@ -75,10 +75,21 @@ app.use(
   })
 );
 
-// ── Trust proxy (for accurate IP behind Nginx) ────────────────
+// ── Trust proxy (Render/Railway load balancers) ─────────────────
 app.set('trust proxy', 1);
 
-// ── Health check (used by Railway/Render/Fly load balancers) ──
+// ── Root — quick sanity check after deploy ──────────────────────
+app.get('/', (_req, res) => {
+  res.status(StatusCodes.OK).json({
+    name: 'CoreBank MS API',
+    version: '1.0.0',
+    environment: env.NODE_ENV,
+    health: '/health',
+    api: `/api/${env.API_VERSION}`,
+  });
+});
+
+// ── Health check (Render healthCheckPath: /health) ──────────────
 app.get('/health', async (_req, res) => {
   const payload = {
     status: 'ok' as 'ok' | 'degraded',

@@ -2,8 +2,11 @@ services:
   - type: web
     name: corebank-api
     runtime: node
+    region: oregon
+    plan: free
     rootDir: backend
-    buildCommand: pnpm install --frozen-lockfile && pnpm db:generate && pnpm build
+    buildCommand: corepack enable && corepack prepare pnpm@9 --activate && pnpm install --frozen-lockfile && pnpm run render-build
+    preDeployCommand: pnpm db:deploy
     startCommand: pnpm start
     healthCheckPath: /health
     envVars:
@@ -11,7 +14,18 @@ services:
         value: production
       - key: LOG_LEVEL
         value: info
-      - key: PORT
-        value: 4000
-      # Set in Render dashboard (sync: false):
-      # DATABASE_URL, DIRECT_URL, JWT_ACCESS_SECRET, JWT_REFRESH_SECRET, CORS_ORIGIN
+      - key: API_VERSION
+        value: v1
+      - key: CORS_ALLOW_VERCEL_PREVIEWS
+        value: "true"
+      # ── Set these in the Render dashboard (sync: false) ──
+      - key: DATABASE_URL
+        sync: false
+      - key: DIRECT_URL
+        sync: false
+      - key: JWT_ACCESS_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: CORS_ORIGIN
+        sync: false

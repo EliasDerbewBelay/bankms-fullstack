@@ -153,9 +153,11 @@ psql $DIRECT_URL -f migrations/001_audit_log_safe.sql
 
 #### Render
 
-1. New **Web Service** → connect repo.
-2. Uses `render.yaml` at repo root (`rootDir: backend`).
-3. Set the same env vars as above in the Render dashboard.
+See **`backend/DEPLOY_RENDER.md`** for the full guide.
+
+1. **New → Blueprint** → connect repo (uses root `render.yaml`).
+2. Set `DATABASE_URL`, `DIRECT_URL`, and `CORS_ORIGIN` in the dashboard.
+3. Health check path: `/health`
 
 #### Docker (any platform)
 
