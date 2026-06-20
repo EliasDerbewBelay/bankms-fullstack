@@ -1,0 +1,14 @@
+node_modules
+dist
+.env
+.env.*
+logs
+*.log
+coverage
+.vitest
+.git
+.gitignore
+README.md
+*.md
+nodemon.json
+tsconfig.tsbuildinfo

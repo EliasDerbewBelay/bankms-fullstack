@@ -4,10 +4,10 @@
  *
  * Run: node seed_demo_data.js
  */
-const { PrismaClient } = require('@prisma/client');
 const argon2 = require('argon2');
+const { createSeedClient, connectWithRetry } = require('./scripts/create-prisma-client');
 
-const prisma = new PrismaClient();
+const prisma = createSeedClient();
 
 const DEMO_PASSWORD = 'Password123!';
 
@@ -383,6 +383,7 @@ async function ensureSampleTransactions(org, tellerEmployeeId) {
 
 async function main() {
   console.log('Seeding CoreBank MS demo data...\n');
+  await connectWithRetry(prisma);
   const passwordHash = await argon2.hash(DEMO_PASSWORD);
 
   const org = await ensureOrg();

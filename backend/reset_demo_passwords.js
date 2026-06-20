@@ -2,10 +2,10 @@
  * Reset demo user passwords to: Password123!
  * Run with: node reset_demo_passwords.js
  */
-const { PrismaClient } = require('@prisma/client');
 const argon2 = require('argon2');
+const { createSeedClient, connectWithRetry } = require('./scripts/create-prisma-client');
 
-const prisma = new PrismaClient();
+const prisma = createSeedClient();
 
 const DEMO_USERS = [
   'abebe.girma',
@@ -22,6 +22,7 @@ const DEMO_USERS = [
 const NEW_PASSWORD = 'Password123!';
 
 async function main() {
+  await connectWithRetry(prisma);
   console.log(`Resetting passwords to: ${NEW_PASSWORD}\n`);
   const hash = await argon2.hash(NEW_PASSWORD);
 

@@ -10,7 +10,9 @@
     "db:pull": "prisma db pull",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
-    "db:studio": "prisma studio",
+    "db:push": "prisma db push",
+    "db:deploy": "prisma db push",
+    "postinstall": "prisma generate",
     "db:seed": "node seed_demo_data.js",
     "seed:demo": "node seed_demo_data.js",
     "seed:banks": "node seed_ethiopian_banks.js",
@@ -20,6 +22,9 @@
     "format": "prettier --write \"src/**/*.ts\"",
     "test": "vitest run",
     "test:watch": "vitest"
+  },
+  "engines": {
+    "node": ">=20"
   },
   "dependencies": {
     "@prisma/client": "^6.0.0",

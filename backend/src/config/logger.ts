@@ -10,23 +10,11 @@ const devFormat = combine(
   simple()
 );
 
-const prodFormat = combine(
-  timestamp(),
-  errors({ stack: true }),
-  json()
-);
+const prodFormat = combine(timestamp(), errors({ stack: true }), json());
 
 export const logger = winston.createLogger({
-  level: env.LOG_LEVEL,
+  level: env.NODE_ENV === 'production' ? env.LOG_LEVEL || 'info' : env.LOG_LEVEL,
   format: env.NODE_ENV === 'production' ? prodFormat : devFormat,
   defaultMeta: { service: 'bankms-api' },
-  transports: [
-    new winston.transports.Console(),
-    ...(env.NODE_ENV === 'production'
-      ? [
-          new winston.transports.File({ filename: 'logs/error.log', level: 'error' }),
-          new winston.transports.File({ filename: 'logs/combined.log' }),
-        ]
-      : []),
-  ],
+  transports: [new winston.transports.Console()],
 });

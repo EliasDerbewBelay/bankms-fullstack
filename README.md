@@ -65,6 +65,9 @@ pnpm db:seed
 # Password for all demo users: Password123!
 ```
 
+> **Neon note:** Free-tier databases pause when idle. The first connection can take 10–30s.
+> If seed fails with "Can't reach database server", wait 30 seconds and run `pnpm db:seed` again.
+
 Optional:
 
 ```bash
@@ -90,7 +93,120 @@ cd frontend && pnpm dev
 
 Open [http://localhost:3000](http://localhost:3000). Demo credentials are shown on the login page (password: `Password123!` after running `pnpm db:seed`).
 
-## Production Build
+## Production Deployment
+
+Recommended stack: **Neon** (PostgreSQL) + **Railway** or **Render** (API) + **Vercel** (frontend).
+
+### Architecture
+
+```
+Browser → Vercel (Next.js) → /api/* rewrite → Railway/Render (Express API) → Neon (PostgreSQL)
+```
+
+Using the Next.js proxy (`NEXT_PUBLIC_API_URL=/api/v1`) avoids CORS issues in production.
+
+---
+
+### Step 1 — Neon (database)
+
+1. Create a project at [neon.tech](https://neon.tech).
+2. Copy **pooled** `DATABASE_URL` and **direct** `DIRECT_URL` (add `&connect_timeout=30`).
+3. Apply schema (one-time):
+
+```bash
+cd backend
+pnpm db:generate
+pnpm db:push
+pnpm db:seed          # demo users for testing
+```
+
+4. Run audit migration if needed:
+
+```bash
+psql $DIRECT_URL -f migrations/001_audit_log_safe.sql
+```
+
+---
+
+### Step 2 — Backend (Railway or Render)
+
+#### Railway
+
+1. New project → **Deploy from GitHub** → select this repo.
+2. Set **Root Directory** to `backend`.
+3. Railway reads `backend/railway.toml` automatically.
+4. Add environment variables:
+
+| Variable | Example |
+|----------|---------|
+| `NODE_ENV` | `production` |
+| `DATABASE_URL` | Neon pooled URL |
+| `DIRECT_URL` | Neon direct URL |
+| `JWT_ACCESS_SECRET` | random 64+ chars |
+| `JWT_REFRESH_SECRET` | random 64+ chars |
+| `CORS_ORIGIN` | `https://your-app.vercel.app` |
+| `CORS_ALLOW_VERCEL_PREVIEWS` | `true` |
+| `LOG_LEVEL` | `info` |
+
+5. Optional **Release Command**: `pnpm db:push`
+6. Health check path: `/health`
+
+#### Render
+
+1. New **Web Service** → connect repo.
+2. Uses `render.yaml` at repo root (`rootDir: backend`).
+3. Set the same env vars as above in the Render dashboard.
+
+#### Docker (any platform)
+
+```bash
+cd backend
+docker build -t corebank-api .
+docker run -p 4000:4000 --env-file .env corebank-api
+```
+
+Verify: `GET https://your-api.example.com/health` → `{ "status": "ok", "database": "connected" }`
+
+---
+
+### Step 3 — Frontend (Vercel)
+
+1. Import repo at [vercel.com](https://vercel.com).
+2. Set **Root Directory** to `frontend`.
+3. Environment variables:
+
+| Variable | Value |
+|----------|-------|
+| `NEXT_PUBLIC_API_URL` | `/api/v1` |
+| `BACKEND_URL` | `https://your-api.railway.app` |
+| `NEXT_PUBLIC_APP_URL` | `https://your-app.vercel.app` |
+| `NEXT_PUBLIC_APP_NAME` | `CoreBank MS` |
+
+4. Deploy. Vercel proxies `/api/*` to your backend via `next.config.ts` rewrites.
+
+#### Alternative: direct API (no proxy)
+
+Set `NEXT_PUBLIC_API_URL=https://your-api.railway.app/api/v1` and ensure backend `CORS_ORIGIN` matches your Vercel URL exactly.
+
+---
+
+### Step 4 — Post-deploy checklist
+
+- [ ] `GET /health` returns `database: connected`
+- [ ] Login works with a seeded demo user
+- [ ] JWT secrets are unique (not dev defaults)
+- [ ] `LOG_LEVEL=info` on backend
+- [ ] Neon project is on a paid plan or accept cold-start delays on free tier
+
+### Local production smoke test
+
+```bash
+docker compose -f docker-compose.prod.yml up --build
+```
+
+---
+
+## Production Build (manual)
 
 ### Backend
 
@@ -110,8 +226,6 @@ Health check: `GET /health`
 ```bash
 cd frontend
 cp .env.example .env.local
-# NEXT_PUBLIC_API_URL=https://api.yourdomain.com/api/v1
-# BACKEND_URL=https://api.yourdomain.com
 pnpm install --frozen-lockfile
 pnpm build
 pnpm start
@@ -127,9 +241,11 @@ pnpm start
 | `DIRECT_URL` | Yes | Direct DB URL (Prisma migrations) |
 | `JWT_ACCESS_SECRET` | Yes | Min 32 characters |
 | `JWT_REFRESH_SECRET` | Yes | Min 32 characters |
-| `CORS_ORIGIN` | Yes | Frontend URL (e.g. `https://app.example.com`) |
+| `CORS_ORIGIN` | Yes | Frontend URL(s), comma-separated |
+| `CORS_ALLOW_VERCEL_PREVIEWS` | No | `true` to allow `*.vercel.app` previews |
 | `NODE_ENV` | No | `production` in prod |
-| `PORT` | No | Default `4000` |
+| `PORT` | No | Default `4000` (platform may override) |
+| `LOG_LEVEL` | No | Use `info` in production |
 
 See `backend/.env.example` for full list.
 
@@ -137,15 +253,19 @@ See `backend/.env.example` for full list.
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `NEXT_PUBLIC_API_URL` | Yes | Public API base URL |
-| `BACKEND_URL` | No | Used by Next.js rewrites |
+| `NEXT_PUBLIC_API_URL` | Yes | `/api/v1` (Vercel proxy) or full backend URL |
+| `BACKEND_URL` | Yes (proxy mode) | Backend origin for Next.js rewrites |
+| `NEXT_PUBLIC_APP_URL` | Yes (prod) | Public frontend URL |
+| `NEXT_PUBLIC_APP_NAME` | No | Display name |
 
 ## Project Structure
 
 ```
 bankms-fullstack/
-├── backend/          # Express API + Prisma
-├── frontend/         # Next.js app
+├── backend/          # Express API + Prisma (+ Dockerfile, railway.toml)
+├── frontend/         # Next.js app (+ Dockerfile, vercel.json)
+├── render.yaml       # Render.com blueprint
+├── docker-compose.prod.yml
 ├── schema.sql        # Full PostgreSQL schema reference
 ├── DATABASE_SCHEMA.md
 └── README.md

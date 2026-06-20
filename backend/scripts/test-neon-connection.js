@@ -1,9 +1,9 @@
-require('dotenv').config();
-const { PrismaClient } = require('@prisma/client');
+const { createSeedClient, connectWithRetry } = require('./create-prisma-client');
 
 async function main() {
-  const prisma = new PrismaClient();
+  const prisma = createSeedClient();
   try {
+    await connectWithRetry(prisma);
     const result = await prisma.$queryRaw`SELECT 1 AS ok`;
     console.log('Neon connection OK:', result);
   } finally {

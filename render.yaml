@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: corebank-api
+    runtime: node
+    rootDir: backend
+    buildCommand: pnpm install --frozen-lockfile && pnpm db:generate && pnpm build
+    startCommand: pnpm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: LOG_LEVEL
+        value: info
+      - key: PORT
+        value: 4000
+      # Set in Render dashboard (sync: false):
+      # DATABASE_URL, DIRECT_URL, JWT_ACCESS_SECRET, JWT_REFRESH_SECRET, CORS_ORIGIN

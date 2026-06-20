@@ -3,8 +3,21 @@ import type { NextConfig } from 'next';
 const backendUrl = process.env.BACKEND_URL ?? 'http://localhost:4000';
 const frontendOrigin = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
 
+const securityHeaders = [
+  { key: 'X-DNS-Prefetch-Control', value: 'on' },
+  { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
+  { key: 'X-Content-Type-Options', value: 'nosniff' },
+  { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+  {
+    key: 'Permissions-Policy',
+    value: 'camera=(), microphone=(), geolocation=()',
+  },
+];
+
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  poweredByHeader: false,
+  output: process.env.DOCKER_BUILD === 'true' ? 'standalone' : undefined,
   experimental: {
     serverActions: {
       allowedOrigins: [new URL(frontendOrigin).host],
@@ -15,6 +28,9 @@ const nextConfig: NextConfig = {
       { protocol: 'http', hostname: 'localhost' },
       { protocol: 'https', hostname: '**' },
     ],
+  },
+  async headers() {
+    return [{ source: '/(.*)', headers: securityHeaders }];
   },
   async rewrites() {
     return [

@@ -10,8 +10,8 @@ async function bootstrap(): Promise<void> {
   try {
     await connectDatabase();
 
-    const server = app.listen(PORT, () => {
-      logger.info(`🚀 Server running on http://localhost:${PORT}`);
+    const server = app.listen(PORT, '0.0.0.0', () => {
+      logger.info(`🚀 Server running on port ${PORT}`);
       logger.info(`📋 Environment: ${env.NODE_ENV}`);
       logger.info(`🔗 API Base: http://localhost:${PORT}/api/${env.API_VERSION}`);
       logger.info(`❤️  Health: http://localhost:${PORT}/health`);

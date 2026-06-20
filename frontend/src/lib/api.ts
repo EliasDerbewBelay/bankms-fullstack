@@ -1,6 +1,11 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api/v1';
+/** Resolve API base — supports absolute URLs and same-origin proxy (/api/v1). */
+function getApiBase(): string {
+  return process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api/v1';
+}
+
+const API_BASE = getApiBase();
 
 export const api = axios.create({
   baseURL: API_BASE,
@@ -34,7 +39,7 @@ api.interceptors.response.use(
 
       if (refreshToken) {
         try {
-          const { data } = await axios.post(`${API_BASE}/auth/refresh`, { refreshToken });
+          const { data } = await api.post('/auth/refresh', { refreshToken });
           const { accessToken } = data.data;
           localStorage.setItem('accessToken', accessToken);
           original.headers = original.headers ?? {};

@@ -14,13 +14,31 @@ export const prisma =
 
 if (env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
 
-export async function connectDatabase(): Promise<void> {
-  try {
-    await prisma.$connect();
-    console.log('✅ Database connected successfully');
-  } catch (error) {
-    console.error('❌ Database connection failed:', error);
-    process.exit(1);
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/** Connect with retries — Neon free tier can take 10–30s to wake from sleep. */
+export async function connectDatabase(
+  attempts = 5,
+  delayMs = 5000
+): Promise<void> {
+  for (let i = 1; i <= attempts; i++) {
+    try {
+      await prisma.$connect();
+      console.log('✅ Database connected successfully');
+      return;
+    } catch (error) {
+      console.error(`❌ Database connection attempt ${i}/${attempts} failed:`, error);
+      if (i === attempts) {
+        console.error(
+          'Could not connect to database. Check DATABASE_URL and that Neon/your DB is active.'
+        );
+        process.exit(1);
+      }
+      console.log(`Retrying in ${delayMs / 1000}s...`);
+      await sleep(delayMs);
+    }
   }
 }
 

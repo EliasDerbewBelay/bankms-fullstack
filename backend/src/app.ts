@@ -6,6 +6,8 @@ import morgan from 'morgan';
 import { StatusCodes } from 'http-status-codes';
 import { env } from './config/env';
 import { logger } from './config/logger';
+import { prisma } from './config/database';
+import { corsOriginDelegate } from './config/cors';
 import { globalLimiter } from './middleware/rateLimiter';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler';
 import { auditLogger } from './middleware/auditLogger';
@@ -47,7 +49,7 @@ app.use(
 
 app.use(
   cors({
-    origin: env.CORS_ORIGIN,
+    origin: corsOriginDelegate,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
@@ -76,15 +78,27 @@ app.use(
 // ── Trust proxy (for accurate IP behind Nginx) ────────────────
 app.set('trust proxy', 1);
 
-// ── Health check ──────────────────────────────────────────────
-app.get('/health', (_req, res) => {
-  res.status(StatusCodes.OK).json({
-    status: 'ok',
+// ── Health check (used by Railway/Render/Fly load balancers) ──
+app.get('/health', async (_req, res) => {
+  const payload = {
+    status: 'ok' as 'ok' | 'degraded',
     version: '1.0.0',
     environment: env.NODE_ENV,
     timestamp: new Date().toISOString(),
     uptime: `${Math.floor(process.uptime())}s`,
-  });
+    database: 'connected' as 'connected' | 'disconnected',
+  };
+
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    res.status(StatusCodes.OK).json(payload);
+  } catch {
+    res.status(StatusCodes.SERVICE_UNAVAILABLE).json({
+      ...payload,
+      status: 'degraded',
+      database: 'disconnected',
+    });
+  }
 });
 
 // ── Audit Logging (runs after auth, before routes) ────────────

@@ -2,8 +2,8 @@
  * Seed Ethiopian commercial banks into the `bank` table.
  * Run with: node seed_ethiopian_banks.js
  */
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const { createSeedClient, connectWithRetry } = require('./scripts/create-prisma-client');
+const prisma = createSeedClient();
 
 const BANKS = [
   {
@@ -273,6 +273,7 @@ const BANKS = [
 ];
 
 async function main() {
+  await connectWithRetry(prisma);
   console.log('Seeding Ethiopian banks...');
   let inserted = 0;
   let skipped = 0;
