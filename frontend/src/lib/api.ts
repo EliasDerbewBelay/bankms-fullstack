@@ -1,15 +1,19 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 
-/** Resolve API base — supports absolute URLs and same-origin proxy (/api/v1). */
+/** Supports absolute URLs and same-origin proxy (/api/v1) on Vercel. */
 function getApiBase(): string {
   return process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api/v1';
 }
 
 const API_BASE = getApiBase();
 
+/** Render free tier can take 30–60s to wake — use a generous timeout in production. */
+const API_TIMEOUT =
+  process.env.NODE_ENV === 'production' ? 90_000 : 30_000;
+
 export const api = axios.create({
   baseURL: API_BASE,
-  timeout: 30000,
+  timeout: API_TIMEOUT,
   headers: { 'Content-Type': 'application/json' },
 });
 
