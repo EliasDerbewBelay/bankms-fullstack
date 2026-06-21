@@ -36,6 +36,11 @@ const nextConfig: NextConfig = {
     return [{ source: '/(.*)', headers: securityHeaders }];
   },
   async rewrites() {
+    if (!process.env.BACKEND_URL && process.env.NODE_ENV === 'production') {
+      console.warn(
+        '[next.config] BACKEND_URL is not set — API rewrites will fail. Import frontend/vercel.env on Vercel.'
+      );
+    }
     return [
       {
         source: '/api/:path*',

@@ -2,6 +2,7 @@ import 'dotenv/config';
 import { env } from './config/env';
 import app from './app';
 import { connectDatabase, disconnectDatabase } from './config/database';
+import { getAllowedOrigins } from './config/cors';
 import { logger } from './config/logger';
 
 const PORT = parseInt(env.PORT, 10);
@@ -13,6 +14,7 @@ async function bootstrap(): Promise<void> {
     const server = app.listen(PORT, '0.0.0.0', () => {
       logger.info(`Server running on port ${PORT} (${env.NODE_ENV})`);
       logger.info(`API prefix: /api/${env.API_VERSION}`);
+      logger.info(`CORS origins: ${getAllowedOrigins().join(', ')}`);
       logger.info('Health check: GET /health');
     });
 

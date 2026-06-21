@@ -17,7 +17,27 @@ const envSchema = z.object({
   CORS_ORIGIN: z
     .string()
     .default('http://localhost:3000')
-    .describe('Comma-separated allowed origins, e.g. https://app.vercel.app'),
+    .describe('Comma-separated allowed origins')
+    .refine(
+      (val) => {
+        const origins = val
+          .split(',')
+          .map((o) => o.trim())
+          .filter(Boolean);
+        return (
+          origins.length > 0 &&
+          origins.every((o) => {
+            try {
+              const url = new URL(o);
+              return url.protocol === 'http:' || url.protocol === 'https:';
+            } catch {
+              return false;
+            }
+          })
+        );
+      },
+      { message: 'CORS_ORIGIN must be comma-separated http(s) URLs, e.g. https://app.vercel.app,http://localhost:3000' }
+    ),
   CORS_ALLOW_VERCEL_PREVIEWS: z
     .enum(['true', 'false'])
     .default('false')

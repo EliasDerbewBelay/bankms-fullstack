@@ -36,7 +36,8 @@
 | `DIRECT_URL` | `postgresql://...@ep-xxx...neon.tech/neondb?sslmode=require&connect_timeout=30` |
 | `JWT_ACCESS_SECRET` | 64+ random characters |
 | `JWT_REFRESH_SECRET` | 64+ random characters (different from access) |
-| `CORS_ORIGIN` | `https://your-frontend.vercel.app` |
+| `CORS_ORIGIN` | `https://bankms-fullstack.vercel.app,http://localhost:3000` |
+| `CORS_ALLOW_VERCEL_PREVIEWS` | `true` |
 | `CORS_ALLOW_VERCEL_PREVIEWS` | `true` |
 
 **Do not set `PORT`** — Render injects it automatically.

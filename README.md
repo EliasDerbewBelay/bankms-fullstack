@@ -176,13 +176,12 @@ Verify: `GET https://your-api.example.com/health` → `{ "status": "ok", "databa
 See **`frontend/DEPLOY_VERCEL.md`** for the full guide.
 
 1. Import repo at [vercel.com/new](https://vercel.com/new) — set **Root Directory** to `frontend`.
-2. Environment variables:
+2. Environment variables — **import `frontend/vercel.env`** in Vercel dashboard, or set manually:
 
 | Variable | Value |
 |----------|-------|
 | `NEXT_PUBLIC_API_URL` | `/api/v1` |
 | `BACKEND_URL` | `https://bankms-fullstack-2.onrender.com` |
-| `NEXT_PUBLIC_APP_URL` | `https://your-app.vercel.app` (after first deploy) |
 | `NEXT_PUBLIC_APP_NAME` | `CoreBank MS` |
 
 3. Deploy. Vercel proxies `/api/*` to Render via `next.config.ts` rewrites.

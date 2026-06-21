@@ -31,18 +31,18 @@ Ensure latest frontend changes are committed and pushed.
 
 ## Step 3 — Environment variables
 
-Add these in Vercel → Project → Settings → Environment Variables:
+**Easiest:** import `frontend/vercel.env` in Vercel → **Settings → Environment Variables → Import .env**  
+Apply to **Production**, **Preview**, and **Development**.
+
+Or add manually:
 
 | Variable | Value | Environments |
 |----------|--------|--------------|
 | `NEXT_PUBLIC_API_URL` | `/api/v1` | Production, Preview, Development |
 | `BACKEND_URL` | `https://bankms-fullstack-2.onrender.com` | Production, Preview, Development |
-| `NEXT_PUBLIC_APP_URL` | `https://YOUR-PROJECT.vercel.app` | Production |
 | `NEXT_PUBLIC_APP_NAME` | `CoreBank MS` | All |
 
-> **Tip:** After the first deploy, copy your actual Vercel URL into `NEXT_PUBLIC_APP_URL` and redeploy.
-
-Preview deployments can use the auto-generated preview URL — `next.config.ts` falls back to `VERCEL_URL` when `NEXT_PUBLIC_APP_URL` is unset.
+`NEXT_PUBLIC_APP_URL` is **optional** — `next.config.ts` uses Vercel's auto-injected `VERCEL_URL` when unset.
 
 ## Step 4 — Deploy
 

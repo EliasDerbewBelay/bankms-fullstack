@@ -1,11 +1,7 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
+import { getApiBaseUrl } from './env';
 
-/** Supports absolute URLs and same-origin proxy (/api/v1) on Vercel. */
-function getApiBase(): string {
-  return process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api/v1';
-}
-
-const API_BASE = getApiBase();
+const API_BASE = getApiBaseUrl();
 
 /** Render free tier can take 30–60s to wake — use a generous timeout in production. */
 const API_TIMEOUT =

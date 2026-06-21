@@ -4,7 +4,7 @@
   "description": "CoreBank MS — Enterprise Bank Management System API",
   "main": "dist/server.js",
   "scripts": {
-    "dev": "nodemon",
+    "dev": "pnpm exec nodemon",
     "build": "tsc --project tsconfig.json",
     "render-build": "pnpm db:generate && pnpm build",
     "start": "node dist/server.js",
