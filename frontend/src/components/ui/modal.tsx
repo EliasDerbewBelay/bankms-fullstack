@@ -27,31 +27,34 @@ export function Modal({ open, onClose, title, description, children, size = 'md'
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm animate-fade-in" />
         <Dialog.Content
           className={cn(
-            'fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2',
-            'w-full rounded-xl border border-border bg-background shadow-2xl',
-            'animate-fade-in focus:outline-none',
+            'fixed z-50 flex max-h-[min(90dvh,900px)] w-[calc(100%-2rem)] flex-col',
+            'left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2',
+            'rounded-xl border border-border bg-background shadow-2xl',
+            'animate-fade-in focus:outline-none sm:w-full',
             sizeClasses[size]
           )}
         >
-          <div className="flex items-center justify-between p-5 border-b border-border">
-            <div>
+          <div className="flex flex-shrink-0 items-start justify-between gap-3 border-b border-border p-4 sm:p-5">
+            <div className="min-w-0">
               <Dialog.Title className="text-base font-semibold text-foreground">
                 {title}
               </Dialog.Title>
               {description && (
-                <Dialog.Description className="text-xs text-muted-foreground mt-0.5">
+                <Dialog.Description className="mt-0.5 text-xs text-muted-foreground sm:text-sm">
                   {description}
                 </Dialog.Description>
               )}
             </div>
             <button
+              type="button"
               onClick={onClose}
-              className="rounded-md p-1.5 text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+              className="flex-shrink-0 rounded-md p-2 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground touch-manipulation"
+              aria-label="Close dialog"
             >
-              <X className="w-4 h-4" />
+              <X className="h-4 w-4" />
             </button>
           </div>
-          <div className="p-5">{children}</div>
+          <div className="flex-1 overflow-y-auto overscroll-contain p-4 sm:p-5">{children}</div>
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>

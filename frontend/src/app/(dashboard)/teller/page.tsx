@@ -1210,7 +1210,7 @@ export default function TellerPage() {
       </div>
 
       {/* Tab navigation */}
-      <div className="flex items-center gap-1 border-b border-border overflow-x-auto pb-0 -mx-1 px-1">
+      <div className="tabs-scroll border-b border-border -mx-1 px-1">
         {TABS.map(({ id, label, icon: Icon }) => (
           <button
             key={id}

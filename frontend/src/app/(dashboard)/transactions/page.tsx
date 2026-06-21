@@ -100,7 +100,7 @@ export default function TransactionsPage() {
 
       {/* Table */}
       <div className="data-table-container">
-        <div className="overflow-x-auto">
+        <div className="data-table-scroll">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border bg-muted/40">

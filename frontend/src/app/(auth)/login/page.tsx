@@ -42,7 +42,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-navy-950 via-navy-900 to-navy-800 flex">
+    <div className="flex min-h-[100dvh] flex-col bg-gradient-to-br from-navy-950 via-navy-900 to-navy-800 lg:flex-row">
       {/* Left branding panel */}
       <div className="hidden lg:flex lg:w-1/2 flex-col justify-between p-12 relative overflow-hidden">
         {/* Decorative circles */}
@@ -101,11 +101,11 @@ export default function LoginPage() {
       </div>
 
       {/* Right login form */}
-      <div className="relative w-full lg:w-1/2 flex items-center justify-center p-6 lg:p-12 bg-background">
+      <div className="relative flex w-full items-center justify-center bg-background p-4 sm:p-6 lg:w-1/2 lg:p-12">
         <div className="absolute top-4 right-4 lg:top-6 lg:right-6">
           <ThemeToggle variant="icon" />
         </div>
-        <div className="w-full max-w-md space-y-8 animate-fade-in">
+        <div className="w-full max-w-md space-y-6 animate-fade-in sm:space-y-8">
           {/* Mobile logo */}
           <div className="flex lg:hidden items-center gap-3 mb-6">
             <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center">
@@ -118,7 +118,7 @@ export default function LoginPage() {
           </div>
 
           <div>
-            <h2 className="text-2xl font-bold text-foreground">Welcome back</h2>
+            <h2 className="text-xl font-bold text-foreground sm:text-2xl">Welcome back</h2>
             <p className="text-muted-foreground text-sm mt-1">
               Sign in to your account to continue
             </p>

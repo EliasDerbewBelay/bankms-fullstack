@@ -119,13 +119,13 @@ function DashboardTab() {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="kpi-grid">
         <KpiCard label="Total Customers" value={data.customers.total}          sub={`${data.customers.verificationRate}% KYC verified`} icon={Users}         color="text-blue-600" />
         <KpiCard label="Active Accounts" value={data.accounts.active}          sub={`of ${data.accounts.total} total`}                 icon={Coins}         color="text-teal-600" />
         <KpiCard label="Txns Today"      value={data.transactions.today}       sub={formatCurrency(data.transactions.volumeToday)}     icon={Activity}      color="text-violet-600" />
         <KpiCard label="NPL Ratio"       value={`${data.loans.nplRatio}%`}     sub={`${data.loans.defaulted} defaulted`}               icon={AlertTriangle} color="text-red-600" />
       </div>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="kpi-grid">
         <KpiCard label="Active Sessions"  value={secData?.activeSessions ?? '—'}   icon={Lock}          color="text-emerald-600" />
         <KpiCard label="Locked Accounts"  value={secData?.lockedAccounts ?? '—'}   icon={Ban}           color="text-red-500" />
         <KpiCard label="Suspicious Today" value={secData?.suspiciousToday ?? '—'}  icon={AlertTriangle} color="text-amber-600" />
@@ -218,7 +218,7 @@ function ExchangeRatesTab() {
         />
         {showForm && (
           <form onSubmit={handleSubmit(d => createMutation.mutate({ ...d, rate: parseFloat(d.rate), from_currency_id: parseInt(d.from_currency_id), to_currency_id: parseInt(d.to_currency_id) }))}
-            className="px-6 py-4 border-b bg-muted/30 grid grid-cols-2 md:grid-cols-4 gap-3">
+            className="form-grid px-4 py-4 border-b bg-muted/30 sm:px-6">
             <div>
               <label className="text-xs font-medium">From Currency *</label>
               <select {...register('from_currency_id', { required: true })} className="mt-1 w-full text-sm border rounded-lg px-2 py-2 bg-background focus:outline-none focus:ring-2 focus:ring-ring">
@@ -329,7 +329,7 @@ function ChargeSchedulesTab() {
             percentage_rate: d.charge_type === 'PERCENTAGE' ? parseFloat(d.percentage_rate || 0) / 100 : null,
             min_charge: d.min_charge ? parseFloat(d.min_charge) : null,
             max_charge: d.max_charge ? parseFloat(d.max_charge) : null,
-          }))} className="px-6 py-4 border-b bg-muted/30 grid grid-cols-2 md:grid-cols-4 gap-3">
+          }))} className="form-grid px-4 py-4 border-b bg-muted/30 sm:px-6">
             <div className="col-span-2">
               <label className="text-xs font-medium">Rule Name *</label>
               <input {...register('charge_name', { required: true })} placeholder="e.g. Interbank Transfer Fee" className="mt-1 w-full text-sm border rounded-lg px-2 py-2 bg-background focus:outline-none focus:ring-2 focus:ring-ring" />
@@ -596,7 +596,7 @@ function EmployeesTab() {
           action={<button onClick={() => setShowForm(v => !v)} className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700"><Plus className="w-3.5 h-3.5" />New Employee</button>}
         />
         {showForm && (
-          <form onSubmit={handleSubmit(d => createMutation.mutate(d))} className="px-6 py-4 border-b bg-muted/30 grid grid-cols-2 md:grid-cols-4 gap-3">
+          <form onSubmit={handleSubmit(d => createMutation.mutate(d))} className="form-grid px-4 py-4 border-b bg-muted/30 sm:px-6">
             <div><label className="text-xs font-medium">First Name *</label><input {...register('first_name', { required: true })} className="mt-1 w-full text-sm border rounded-lg px-2 py-2 bg-background focus:outline-none focus:ring-2 focus:ring-ring" /></div>
             <div><label className="text-xs font-medium">Last Name *</label><input {...register('last_name', { required: true })} className="mt-1 w-full text-sm border rounded-lg px-2 py-2 bg-background focus:outline-none focus:ring-2 focus:ring-ring" /></div>
             <div><label className="text-xs font-medium">Email *</label><input type="email" {...register('email', { required: true })} className="mt-1 w-full text-sm border rounded-lg px-2 py-2 bg-background focus:outline-none focus:ring-2 focus:ring-ring" /></div>
@@ -693,7 +693,7 @@ function SecurityTab() {
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="kpi-grid">
         <KpiCard label="Active Sessions"   value={secStats?.activeSessions ?? '—'}    icon={Activity}     color="text-emerald-600" />
         <KpiCard label="Locked Accounts"   value={secStats?.lockedAccounts ?? '—'}    icon={Ban}          color="text-red-600" />
         <KpiCard label="Suspicious Today"  value={secStats?.suspiciousToday ?? '—'}   icon={AlertTriangle} color="text-amber-600" />
@@ -883,7 +883,7 @@ function AuditLogsTab() {
 
       {/* Filters */}
       <Card className="p-4">
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-7">
           {/* Keyword search */}
           <div className="relative col-span-2">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
@@ -1282,7 +1282,7 @@ function AccountTypesTab() {
                     accrual_frequency: parseInt(d.accrual_frequency),
                     is_active: d.is_active === 'true',
                     description: d.description,
-                  }}))} className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3 p-4 rounded-lg bg-muted/30 border">
+                  }}))} className="mt-4 form-grid p-4 rounded-lg bg-muted/30 border sm:p-4">
                     <div><label className="text-xs font-medium">Interest Rate (%)</label><input type="number" step="0.01" defaultValue={(Number(t.interest_rate)*100).toFixed(2)} {...register('interest_rate')} className="mt-1 w-full text-sm border rounded-lg px-2 py-1.5 bg-background focus:outline-none focus:ring-2 focus:ring-ring" /></div>
                     <div><label className="text-xs font-medium">Min Balance</label><input type="number" step="0.01" defaultValue={Number(t.minimum_balance)} {...register('minimum_balance')} className="mt-1 w-full text-sm border rounded-lg px-2 py-1.5 bg-background focus:outline-none focus:ring-2 focus:ring-ring" /></div>
                     <div><label className="text-xs font-medium">Max Balance</label><input type="number" step="0.01" defaultValue={t.maximum_balance ? Number(t.maximum_balance) : ''} {...register('maximum_balance')} placeholder="No limit" className="mt-1 w-full text-sm border rounded-lg px-2 py-1.5 bg-background focus:outline-none focus:ring-2 focus:ring-ring" /></div>
@@ -1423,7 +1423,7 @@ function BranchesTab() {
           action={<button onClick={() => setShowBranchForm(v => !v)} className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700"><Plus className="w-3.5 h-3.5" />New Branch</button>}
         />
         {showBranchForm && (
-          <form onSubmit={handleB(d => createBranchMutation.mutate(d))} className="px-6 py-4 border-b bg-muted/30 grid grid-cols-2 md:grid-cols-4 gap-3">
+          <form onSubmit={handleB(d => createBranchMutation.mutate(d))} className="form-grid px-4 py-4 border-b bg-muted/30 sm:px-6">
             <div><label className="text-xs font-medium">Branch Name *</label><input {...regB('branch_name', { required: true })} className="mt-1 w-full text-sm border rounded-lg px-2 py-2 bg-background focus:outline-none focus:ring-2 focus:ring-ring" /></div>
             <div><label className="text-xs font-medium">Branch Code *</label><input {...regB('branch_code', { required: true })} placeholder="e.g. BR001" className="mt-1 w-full text-sm border rounded-lg px-2 py-2 bg-background focus:outline-none focus:ring-2 focus:ring-ring" /></div>
             <div><label className="text-xs font-medium">City *</label><input {...regB('city', { required: true })} className="mt-1 w-full text-sm border rounded-lg px-2 py-2 bg-background focus:outline-none focus:ring-2 focus:ring-ring" /></div>
@@ -1479,7 +1479,7 @@ function BranchesTab() {
           action={<button onClick={() => setShowDeptForm(v => !v)} className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700"><Plus className="w-3.5 h-3.5" />New Dept</button>}
         />
         {showDeptForm && (
-          <form onSubmit={handleD(d => createDeptMutation.mutate(d))} className="px-6 py-4 border-b bg-muted/30 grid grid-cols-2 md:grid-cols-4 gap-3">
+          <form onSubmit={handleD(d => createDeptMutation.mutate(d))} className="form-grid px-4 py-4 border-b bg-muted/30 sm:px-6">
             <div><label className="text-xs font-medium">Department Name *</label><input {...regD('department_name', { required: true })} className="mt-1 w-full text-sm border rounded-lg px-2 py-2 bg-background focus:outline-none focus:ring-2 focus:ring-ring" /></div>
             <div>
               <label className="text-xs font-medium">Branch *</label>
@@ -1671,7 +1671,7 @@ export default function AdminPage() {
           </div>
 
           {/* Tabs */}
-          <div className="mt-4 flex items-center gap-0.5 overflow-x-auto pb-px">
+          <div className="mt-4 tabs-scroll border-b border-border">
             {TABS.map(tab => (
               <button key={tab.id} onClick={() => setActiveTab(tab.id)}
                 className={`flex items-center gap-1.5 px-3 py-2.5 rounded-t-lg text-xs font-medium transition-all whitespace-nowrap ${
@@ -1688,7 +1688,7 @@ export default function AdminPage() {
       </div>
 
       {/* Content */}
-      <div className="p-6">
+      <div className="p-4 sm:p-6">
         {activeTab === 'dashboard'        && <DashboardTab />}
         {activeTab === 'exchange-rates'   && <ExchangeRatesTab />}
         {activeTab === 'charge-schedules' && <ChargeSchedulesTab />}

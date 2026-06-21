@@ -57,20 +57,15 @@ export default function CustomersPage() {
             {meta ? `${meta.total.toLocaleString()} total customers` : 'Manage customer accounts'}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="page-actions">
           <button
             onClick={() => refetch()}
-            className="flex items-center gap-2 rounded-lg border border-border px-3 py-2
-                       text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+            className="btn-secondary gap-2 px-3"
           >
             <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
             Refresh
           </button>
-          <Link
-            href="/customers/new"
-            className="flex items-center gap-2 rounded-lg bg-primary px-3 py-2
-                       text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
-          >
+          <Link href="/customers/new" className="btn-primary gap-2 px-3">
             <Plus className="w-4 h-4" />
             New Customer
           </Link>
@@ -78,8 +73,8 @@ export default function CustomersPage() {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="relative flex-1 min-w-[200px]">
+      <div className="filter-row">
+        <div className="relative w-full min-w-0 sm:flex-1 sm:min-w-[12rem]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <input
             type="text"
@@ -116,7 +111,7 @@ export default function CustomersPage() {
 
       {/* Table */}
       <div className="data-table-container">
-        <div className="overflow-x-auto">
+        <div className="data-table-scroll">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border bg-muted/40">

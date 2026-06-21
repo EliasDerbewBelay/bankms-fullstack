@@ -139,14 +139,14 @@ function DashboardTab() {
   return (
     <div className="space-y-6">
       {/* KPIs */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="kpi-grid">
         <KpiCard label="Total Customers"  value={data.customers.total}             sub={`${data.customers.verified} verified`}         icon={Users}       color="text-blue-600" />
         <KpiCard label="Active Accounts"  value={data.accounts.active}             sub={`of ${data.accounts.total} total`}             icon={Banknote}    color="text-teal-600" />
         <KpiCard label="Txns Today"       value={data.transactions.today}          sub={formatCurrency(data.transactions.volumeToday)} icon={Activity}    color="text-violet-600" />
         <KpiCard label="Active Loans"     value={data.loans.active}                sub={`NPL ${data.loans.nplRatio}%`}                 icon={FileText}    color="text-orange-600" />
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="kpi-grid">
         <KpiCard label="Total Deposits"    value={formatCurrency(data.transactions.totalDeposits)}    icon={ArrowDownCircle} color="text-emerald-600" />
         <KpiCard label="Total Withdrawals" value={formatCurrency(data.transactions.totalWithdrawals)} icon={ArrowUpCircle}   color="text-red-500" />
         <KpiCard label="Pending Refunds"   value={data.alerts.pendingRefunds}   sub="awaiting approval" icon={RefreshCw}   color="text-amber-600" />
@@ -453,7 +453,7 @@ function TxStatsTab() {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="kpi-grid">
         <KpiCard label="Today's Transactions" value={data.transactions.today}                        icon={Activity}        color="text-blue-600" />
         <KpiCard label="Volume Today"          value={formatCurrency(data.transactions.volumeToday)} icon={TrendingUp}      color="text-teal-600" />
         <KpiCard label="Total Deposits"        value={formatCurrency(data.transactions.totalDeposits)}    icon={ArrowDownCircle} color="text-emerald-600" />
@@ -564,7 +564,7 @@ function LoanPortfolioTab() {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="kpi-grid">
         <KpiCard label="Total Loans"        value={statsData?.totalLoans ?? 0}                          sub="all statuses"       icon={FileText}  color="text-blue-600" />
         <KpiCard label="Active Loans"       value={statsData?.activeCount ?? 0}                         sub="currently active"   icon={CheckCircle2} color="text-emerald-600" />
         <KpiCard label="Defaulted"          value={statsData?.defaultedLoans ?? 0}                      sub={`NPL ${statsData?.nplRatio ?? '0.00'}%`} icon={AlertTriangle} color="text-red-600" />
@@ -1160,7 +1160,7 @@ export default function BranchManagerPage() {
           </div>
 
           {/* Tab bar */}
-          <div className="mt-5 flex items-center gap-0.5 overflow-x-auto pb-px">
+          <div className="mt-5 tabs-scroll border-b border-border">
             {TABS.map(tab => (
               <button
                 key={tab.id}

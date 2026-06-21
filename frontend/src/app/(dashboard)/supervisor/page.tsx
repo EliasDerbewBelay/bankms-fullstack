@@ -132,7 +132,7 @@ function OverviewTab({ onNavigate }: { onNavigate: (t: Tab) => void }) {
   return (
     <div className="space-y-6">
       {/* KPI Row */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 sm:gap-4">
         {kpiCards.map(({ label, value, tab, color, bg, icon: Icon }) => (
           <button
             key={tab}
@@ -1113,7 +1113,7 @@ export default function SupervisorPage() {
           </div>
 
           {/* Tabs */}
-          <div className="mt-5 flex items-center gap-1 overflow-x-auto pb-px">
+          <div className="mt-5 tabs-scroll border-b border-border">
             {TABS.map(tab => (
               <button
                 key={tab.id}

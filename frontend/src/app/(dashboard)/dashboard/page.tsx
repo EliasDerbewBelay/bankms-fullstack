@@ -226,7 +226,7 @@ export default function DashboardPage() {
           <div className="h-8 w-48 bg-muted rounded animate-pulse" />
           <div className="h-4 w-64 bg-muted rounded animate-pulse mt-2" />
         </div>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="kpi-grid">
           {Array.from({ length: 8 }).map((_, i) => (
             <div key={i} className="stat-card h-28 bg-muted animate-pulse" />
           ))}
@@ -290,7 +290,7 @@ export default function DashboardPage() {
       )}
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="kpi-grid">
         <StatCard
           label="Total Customers"
           value={data.customers.total.toLocaleString()}
@@ -749,7 +749,7 @@ function TellerDashboard() {
 
       {/* KPI cards */}
       {isLoading ? (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="kpi-grid">
           {Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className="stat-card h-28 bg-muted animate-pulse" />
           ))}
@@ -760,7 +760,7 @@ function TellerDashboard() {
           <p className="text-sm text-red-700 dark:text-red-400">Could not load shift data. Make sure the backend is running.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="kpi-grid">
           {statCards.map((card) => (
             <StatCard key={card.label} {...card} />
           ))}

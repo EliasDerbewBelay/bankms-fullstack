@@ -3,9 +3,10 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
-import { Bell, Settings, LogOut, ChevronDown } from 'lucide-react';
+import { Bell, Settings, LogOut, ChevronDown, Menu } from 'lucide-react';
 import { cn, getInitials } from '../../lib/utils';
 import { useAuthStore } from '../../store/auth.store';
+import { useMobileNavStore } from '../../store/mobile-nav.store';
 import { ThemeToggle } from '../ui/theme-toggle';
 
 const PAGE_TITLES: Record<string, string> = {
@@ -41,6 +42,7 @@ export function Topbar() {
   const pathname = usePathname();
   const router = useRouter();
   const { user, logout } = useAuthStore();
+  const { toggle: toggleMobileNav } = useMobileNavStore();
   const [menuOpen, setMenuOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -55,7 +57,6 @@ export function Topbar() {
   const isNotificationsActive =
     pathname === '/notifications' || pathname.startsWith('/notifications/');
 
-  // Close the menu on outside click or Escape.
   useEffect(() => {
     function onPointerDown(e: MouseEvent) {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
@@ -73,7 +74,6 @@ export function Topbar() {
     };
   }, []);
 
-  // Close the menu whenever the route changes.
   useEffect(() => {
     setMenuOpen(false);
   }, [pathname]);
@@ -85,21 +85,32 @@ export function Topbar() {
   };
 
   const iconButton =
-    'relative inline-flex h-9 w-9 items-center justify-center rounded-lg border border-border ' +
+    'relative inline-flex h-10 w-10 items-center justify-center rounded-lg border border-border ' +
     'bg-background text-muted-foreground transition-colors hover:bg-accent hover:text-foreground ' +
-    'focus:outline-none focus:ring-2 focus:ring-ring';
+    'focus:outline-none focus:ring-2 focus:ring-ring touch-manipulation';
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 flex-shrink-0 items-center justify-between gap-3 border-b border-border bg-background/80 px-4 backdrop-blur-md lg:px-6">
-      {/* Current page context */}
-      <div className="min-w-0">
-        <h1 className="truncate text-base font-semibold text-foreground">
-          {resolveTitle(pathname)}
-        </h1>
+    <header className="sticky top-0 z-30 flex h-14 flex-shrink-0 items-center justify-between gap-2 border-b border-border bg-background/90 px-3 backdrop-blur-md supports-[backdrop-filter]:bg-background/80 sm:h-16 sm:gap-3 sm:px-4 lg:px-6">
+      <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
+        <button
+          type="button"
+          onClick={toggleMobileNav}
+          className={cn(iconButton, 'lg:hidden')}
+          aria-label="Open navigation menu"
+        >
+          <Menu className="h-5 w-5" />
+        </button>
+        <div className="min-w-0">
+          <h1 className="truncate text-sm font-semibold text-foreground sm:text-base">
+            {resolveTitle(pathname)}
+          </h1>
+          <p className="truncate text-[11px] text-muted-foreground sm:hidden">
+            {roleLabel}
+          </p>
+        </div>
       </div>
 
-      {/* Actions */}
-      <div className="flex items-center gap-1.5">
+      <div className="flex flex-shrink-0 items-center gap-1 sm:gap-1.5">
         <ThemeToggle variant="icon" />
 
         <Link
@@ -114,9 +125,8 @@ export function Topbar() {
           <Bell className="h-4 w-4" />
         </Link>
 
-        <div className="mx-1 hidden h-6 w-px bg-border sm:block" />
+        <div className="mx-0.5 hidden h-6 w-px bg-border sm:block" />
 
-        {/* User profile dropdown */}
         <div ref={menuRef} className="relative">
           <button
             type="button"
@@ -124,7 +134,7 @@ export function Topbar() {
             aria-haspopup="menu"
             aria-expanded={menuOpen}
             className={cn(
-              'flex items-center gap-2 rounded-lg border border-transparent px-1.5 py-1 transition-colors',
+              'flex min-h-[40px] items-center gap-2 rounded-lg border border-transparent px-1 py-1 transition-colors touch-manipulation',
               'hover:bg-accent focus:outline-none focus:ring-2 focus:ring-ring',
               menuOpen && 'bg-accent'
             )}
@@ -153,9 +163,9 @@ export function Topbar() {
           {menuOpen && (
             <div
               role="menu"
-              className="absolute right-0 mt-2 w-60 origin-top-right overflow-hidden rounded-xl border border-border bg-popover text-popover-foreground shadow-lg animate-fade-in"
+              className="absolute right-0 z-50 mt-2 w-[min(100vw-2rem,15rem)] origin-top-right overflow-hidden rounded-xl border border-border bg-popover text-popover-foreground shadow-lg animate-fade-in"
             >
-              <div className="flex items-center gap-3 border-b border-border px-4 py-3">
+              <div className="flex items-center gap-3 border-b border-border px-4 py-3 lg:hidden">
                 <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-primary">
                   <span className="text-xs font-bold text-primary-foreground">
                     {getInitials(displayName || user?.username || '?')}
@@ -165,7 +175,7 @@ export function Topbar() {
                   <p className="truncate text-sm font-medium text-foreground">
                     {displayName || user?.username}
                   </p>
-                  <p className="truncate text-xs text-muted-foreground">@{user?.username}</p>
+                  <p className="truncate text-xs text-muted-foreground">{roleLabel}</p>
                 </div>
               </div>
 
@@ -173,7 +183,7 @@ export function Topbar() {
                 <Link
                   href="/settings"
                   role="menuitem"
-                  className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-foreground transition-colors hover:bg-accent"
+                  className="flex min-h-[44px] items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-foreground transition-colors hover:bg-accent"
                 >
                   <Settings className="h-4 w-4 text-muted-foreground" />
                   Settings
@@ -186,7 +196,7 @@ export function Topbar() {
                   onClick={handleLogout}
                   disabled={loggingOut}
                   role="menuitem"
-                  className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-destructive transition-colors hover:bg-destructive/10 disabled:opacity-60"
+                  className="flex min-h-[44px] w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-destructive transition-colors hover:bg-destructive/10 disabled:opacity-60"
                 >
                   <LogOut className="h-4 w-4" />
                   {loggingOut ? 'Signing out…' : 'Sign out'}

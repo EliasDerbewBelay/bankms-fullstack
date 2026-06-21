@@ -25,19 +25,21 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   if (!mounted || !isAuthenticated || !user) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      <div className="flex min-h-[100dvh] items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
 
   return (
-    <div className="flex h-screen bg-background overflow-hidden">
+    <div className="flex h-[100dvh] overflow-hidden bg-background">
       <Sidebar />
-      <div className="flex flex-1 flex-col overflow-hidden">
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <Topbar />
-        <main className="flex-1 overflow-y-auto">
-          <div className="p-6 lg:p-8 max-w-[1600px] mx-auto">{children}</div>
+        <main className="flex-1 overflow-y-auto overflow-x-hidden overscroll-y-contain">
+          <div className="mx-auto w-full max-w-[1600px] px-4 py-4 sm:px-5 sm:py-5 lg:px-8 lg:py-8">
+            {children}
+          </div>
         </main>
       </div>
     </div>

@@ -38,22 +38,24 @@ export default function DisputesPage() {
   });
 
   return (
-    <div className="p-8 space-y-8 animate-fade-in">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+    <div className="space-y-6 animate-fade-in sm:space-y-8">
+      <div className="page-header">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Dispute Resolution</h1>
-          <p className="text-muted-foreground mt-2">
+          <h1 className="page-title">Dispute Resolution</h1>
+          <p className="page-subtitle">
             {user?.role === 'CUSTOMER' ? 'Track and manage your transaction disputes.' : 'Review and resolve customer disputes.'}
           </p>
         </div>
         {user?.role === 'CUSTOMER' && (
+          <div className="page-actions">
           <button
             onClick={() => setIsModalOpen(true)}
-            className="flex items-center gap-2 bg-rose-500 hover:bg-rose-600 text-white px-5 py-2.5 rounded-xl font-medium transition-all shadow-sm"
+            className="btn-primary gap-2 bg-rose-600 hover:bg-rose-700"
           >
             <ShieldAlert className="w-5 h-5" />
             File Dispute
           </button>
+          </div>
         )}
       </div>
 
