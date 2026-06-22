@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import dotenv from 'dotenv';
+import { isValidCorsOriginList, normalizeCorsOriginInput } from './cors-origin';
 
 dotenv.config();
 
@@ -14,30 +15,15 @@ const envSchema = z.object({
   JWT_REFRESH_SECRET: z.string().min(32, 'JWT_REFRESH_SECRET must be at least 32 characters'),
   JWT_ACCESS_EXPIRES_IN: z.string().default('15m'),
   JWT_REFRESH_EXPIRES_IN: z.string().default('7d'),
-  CORS_ORIGIN: z
-    .string()
-    .default('http://localhost:3000')
-    .describe('Comma-separated allowed origins')
-    .refine(
-      (val) => {
-        const origins = val
-          .split(',')
-          .map((o) => o.trim())
-          .filter(Boolean);
-        return (
-          origins.length > 0 &&
-          origins.every((o) => {
-            try {
-              const url = new URL(o);
-              return url.protocol === 'http:' || url.protocol === 'https:';
-            } catch {
-              return false;
-            }
-          })
-        );
-      },
-      { message: 'CORS_ORIGIN must be comma-separated http(s) URLs, e.g. https://app.vercel.app,http://localhost:3000' }
-    ),
+  CORS_ORIGIN: z.preprocess(
+    (val) => normalizeCorsOriginInput(val),
+    z
+      .string()
+      .refine(isValidCorsOriginList, {
+        message:
+          'CORS_ORIGIN must be comma-separated http(s) URLs without quotes, e.g. https://app.vercel.app,http://localhost:3000',
+      })
+  ),
   CORS_ALLOW_VERCEL_PREVIEWS: z
     .enum(['true', 'false'])
     .default('false')
@@ -55,6 +41,9 @@ const parsed = envSchema.safeParse(process.env);
 if (!parsed.success) {
   console.error('❌ Invalid environment variables:');
   console.error(parsed.error.flatten().fieldErrors);
+  if (process.env.CORS_ORIGIN !== undefined) {
+    console.error('CORS_ORIGIN received:', JSON.stringify(process.env.CORS_ORIGIN));
+  }
   process.exit(1);
 }
 
